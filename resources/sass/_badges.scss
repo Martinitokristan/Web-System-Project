@@ -1,0 +1,34 @@
+// resources/sass/_badges.scss
+@import 'variables';
+@import 'mixins';
+
+.badge {
+  @include badge(var(--surface2), var(--text2));
+  border: 1px solid var(--border);
+
+  &--green  { @include badge(var(--green-light), #15803d); }
+  &--blue   { @include badge(var(--blue-light), #1d4ed8); }
+  &--amber  { @include badge(var(--amber-light), #b45309); }
+  &--red    { @include badge(var(--red-light), #dc2626); }
+  &--purple { @include badge(var(--purple-light), #6d28d9); }
+  &--orange { @include badge(#FFF7ED, #c2410c); }
+  &--gray   { @include badge(var(--surface2), var(--text2)); }
+
+  // Status-specific
+  &--pending        { @include badge(var(--amber-light), #b45309); }
+  &--confirmed      { @include badge(var(--blue-light), #1d4ed8); }
+  &--delivered      { @include badge(var(--green-light), #15803d); }
+  &--out_for_delivery { @include badge(#FFF7ED, #c2410c); }
+  &--returned       { @include badge(var(--red-light), #dc2626); }
+  &--cancelled      { @include badge(var(--surface2), var(--text3)); }
+  &--in_progress    { @include badge(#FFF7ED, #c2410c); }
+  &--failed         { @include badge(var(--red-light), #dc2626); }
+  &--active         { @include badge(var(--green-light), #15803d); }
+  &--suspended      { @include badge(var(--red-light), #dc2626); }
+  &--admin          { @include badge(var(--purple-light), #6d28d9); }
+  &--customer       { @include badge(var(--blue-light), #1d4ed8); }
+  &--rider          { @include badge(#FFF7ED, #c2410c); }
+  &--available      { @include badge(var(--green-light), #15803d); }
+  &--on_delivery    { @include badge(#FFF7ED, #c2410c); }
+  &--off_duty       { @include badge(var(--surface2), var(--text2)); }
+}

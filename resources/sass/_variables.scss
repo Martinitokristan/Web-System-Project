@@ -1,0 +1,46 @@
+// resources/sass/_variables.scss
+
+:root {
+  --accent:        #FF6B35;
+  --accent-light:  #FFF1EB;
+  --blue:          #3B82F6;
+  --blue-light:    #EFF6FF;
+  --green:         #22C55E;
+  --green-light:   #F0FDF4;
+  --amber:         #F59E0B;
+  --amber-light:   #FFFBEB;
+  --red:           #EF4444;
+  --red-light:     #FEF2F2;
+  --purple:        #8B5CF6;
+  --purple-light:  #F5F3FF;
+  --bg:            #F8FAFC;
+  --surface:       #FFFFFF;
+  --surface2:      #F1F5F9;
+  --border:        #E2E8F0;
+  --text:          #0F172A;
+  --text2:         #475569;
+  --text3:         #94A3B8;
+  --shadow-sm:     0 1px 3px rgba(0,0,0,.08);
+  --shadow-md:     0 4px 16px rgba(0,0,0,.12);
+  --radius:        12px;
+  --sidebar-w:     260px;
+  --topbar-h:      64px;
+  --transition:    all 0.2s ease;
+}
+
+// SCSS variable aliases
+$accent:   #FF6B35;
+$blue:     #3B82F6;
+$green:    #22C55E;
+$amber:    #F59E0B;
+$red:      #EF4444;
+$purple:   #8B5CF6;
+$surface:  #FFFFFF;
+$border:   #E2E8F0;
+$text:     #0F172A;
+$text2:    #475569;
+$text3:    #94A3B8;
+$bg:       #F8FAFC;
+$radius:   12px;
+$sidebar-w: 260px;
+$topbar-h:  64px;

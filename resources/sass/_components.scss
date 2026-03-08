@@ -1,0 +1,241 @@
+// resources/sass/_components.scss
+@import 'variables';
+@import 'mixins';
+
+// Stat Cards
+.stat-card {
+  @include card;
+  position: relative;
+  overflow: hidden;
+  border-top: 3px solid transparent;
+  transition: var(--transition);
+
+  &:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  &--green  { border-top-color: var(--green); }
+  &--blue   { border-top-color: var(--blue); }
+  &--amber  { border-top-color: var(--amber); }
+  &--accent { border-top-color: var(--accent); }
+  &--red    { border-top-color: var(--red); }
+  &--purple { border-top-color: var(--purple); }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text2);
+    margin-bottom: 0.5rem;
+  }
+
+  &__value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  &__trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 0.5rem;
+
+    &.up   { color: var(--green); }
+    &.down { color: var(--red); }
+  }
+
+  &__icon {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    @include flex-center;
+    font-size: 1.25rem;
+    opacity: 0.85;
+  }
+}
+
+// Filter bar
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+
+    input {
+      @include input;
+      padding-left: 2.25rem;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      pointer-events: none;
+    }
+  }
+
+  select {
+    @include input;
+    width: auto;
+    min-width: 150px;
+    cursor: pointer;
+  }
+}
+
+// Pagination
+.pagination {
+  @include flex-between;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+
+  &__info { font-size: 0.8125rem; color: var(--text2); }
+
+  &__buttons {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__btn {
+    width: 32px; height: 32px;
+    @include flex-center;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.8125rem;
+    color: var(--text2);
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover { background: var(--surface2); }
+    &.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+}
+
+// Toast notifications
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  min-width: 280px;
+  max-width: 380px;
+  font-size: 0.875rem;
+  animation: slideInRight 0.3s ease;
+
+  &.success { border-left: 4px solid var(--green); .toast__icon { color: var(--green); } }
+  &.error   { border-left: 4px solid var(--red); .toast__icon { color: var(--red); } }
+  &.info    { border-left: 4px solid var(--blue); .toast__icon { color: var(--blue); } }
+
+  &__msg  { flex: 1; color: var(--text); font-weight: 500; }
+  &__close { color: var(--text3); cursor: pointer; &:hover { color: var(--text); } }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+// Action buttons
+.btn {
+  @include btn(var(--accent));
+  &--ghost  { @include btn(transparent, var(--text2)); border: 1px solid var(--border); }
+  &--danger { @include btn(var(--red)); }
+  &--green  { @include btn(var(--green)); }
+  &--blue   { @include btn(var(--blue)); }
+  &--sm     { padding: 0.35rem 0.875rem; font-size: 12px; }
+  &--icon   { padding: 0.5rem; border-radius: 8px; width: 34px; height: 34px; @include flex-center; }
+}
+
+// Skeleton loader
+.skeleton {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// Small empty state (for kanban columns)
+.empty-state-sm {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+// Chart tooltip hover effect
+.chart-tooltip {
+  &:hover {
+    opacity: 1 !important;
+  }
+}
+
+// Kanban card enhancements
+.kanban-card {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+}
+
+// Section title
+.section-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+// Text accent color
+.text-accent {
+  color: var(--accent);
+}
+
+// Font semi-bold utility
+.font-semi {
+  font-weight: 600;
+}
+
+// Max width utility for truncation
+.max-w-xs {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

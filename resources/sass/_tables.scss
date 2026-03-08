@@ -1,0 +1,85 @@
+// resources/sass/_tables.scss
+@import 'variables';
+
+.table-wrap {
+  @include card;
+  padding: 0;
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background: var(--surface2);
+
+    th {
+      padding: 0.875rem 1rem;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text2);
+      text-align: left;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+
+      &:last-child { border-bottom: none; }
+      &:hover { background: var(--surface2); }
+    }
+
+    td {
+      padding: 0.875rem 1rem;
+      font-size: 0.875rem;
+      color: var(--text);
+      vertical-align: middle;
+    }
+  }
+
+  .td-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .td-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.8125rem;
+      @include flex-center;
+      flex-shrink: 0;
+    }
+
+    .user-name { font-weight: 600; font-size: 0.875rem; }
+    .user-email { font-size: 12px; color: var(--text3); }
+  }
+
+  .td-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .td-muted  { color: var(--text3); font-size: 12px; }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text3);
+
+  .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .empty-text { font-size: 0.9375rem; font-weight: 500; }
+  .empty-sub  { font-size: 0.8125rem; margin-top: 0.25rem; }
+}

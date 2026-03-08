@@ -1,0 +1,138 @@
+// resources/sass/_kanban.scss
+@import 'variables';
+@import 'mixins';
+
+.kanban-board {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  min-height: calc(100vh - 280px);
+}
+
+.kanban-column {
+  flex: 1;
+  min-width: 300px;
+  max-width: 380px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 280px);
+
+  &__header {
+    @include flex-between;
+    padding: 1rem 1.125rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface2);
+    border-radius: var(--radius) var(--radius) 0 0;
+
+    .col-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.875rem;
+    }
+
+    .col-count {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text2);
+    }
+
+    .col-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      &--pending     { background: var(--amber); }
+      &--in_progress { background: var(--blue); }
+      &--delivered   { background: var(--green); }
+    }
+  }
+
+  &__cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.kanban-card {
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+
+  &:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+  &__id { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+
+  &__customer {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+  }
+
+  &__address {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+
+    svg { flex-shrink: 0; margin-top: 2px; }
+  }
+
+  &__meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  &__cod {
+    background: var(--amber-light);
+    color: #b45309;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  &__rider {
+    margin-bottom: 10px;
+
+    select {
+      width: 100%;
+      padding: 0.4rem 0.625rem;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      font-size: 0.8125rem;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+}
