@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { SupplierAuthProvider } from './context/SupplierAuthContext';
 import '../sass/app.scss';
 
 // Layout
@@ -35,6 +37,12 @@ import OrderHistory from './components/customer-portal/OrderHistory';
 // Rider App
 import RiderApp from './components/rider/RiderApp';
 
+// Supplier Portal
+import SupplierLogin from './components/supplier/SupplierLogin';
+import SupplierRegister from './components/supplier/SupplierRegister';
+import SupplierDashboard from './components/supplier/SupplierDashboard';
+import SupplierOrders from './components/supplier/SupplierOrders';
+
 function ProtectedRoute({ children, roles }) {
     const { user, loading } = useAuth();
     if (loading) return <div className="loading-page"><div className="spinner" /></div>;
@@ -50,6 +58,28 @@ function ProtectedRoute({ children, roles }) {
         if (user.role === 'customer') return <Navigate to="/shop" replace />;
         return <Navigate to="/" replace />;
     }
+    return children;
+}
+
+// Supplier Protected Route - simplified to just check token
+function SupplierProtectedRoute({ children }) {
+    const [loading, setLoading] = useState(true);
+    const [authenticated, setAuthenticated] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem('supplier_token');
+        console.log('SupplierProtectedRoute: token from localStorage:', token ? token.substring(0, 20) + '...' : 'null');
+        console.log('SupplierProtectedRoute: token length:', token ? token.length : 0);
+        if (token) {
+            // Set axios auth header
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            setAuthenticated(true);
+        }
+        setLoading(false);
+    }, []);
+
+    if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+    if (!authenticated) return <Navigate to="/supplier/login" replace />;
     return children;
 }
 
@@ -99,6 +129,20 @@ export default function AppRouter() {
                 </ProtectedRoute>
             } />
 
+            {/* Supplier Portal */}
+            <Route path="/supplier/login" element={<SupplierLogin />} />
+            <Route path="/supplier/register" element={<SupplierRegister />} />
+            <Route path="/supplier/dashboard" element={
+                <SupplierProtectedRoute>
+                    <SupplierDashboard />
+                </SupplierProtectedRoute>
+            } />
+            <Route path="/supplier/orders" element={
+                <SupplierProtectedRoute>
+                    <SupplierOrders />
+                </SupplierProtectedRoute>
+            } />
+
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
@@ -108,9 +152,11 @@ if (document.getElementById('app')) {
     ReactDOM.render(
         <BrowserRouter>
             <AuthProvider>
-                <ToastProvider>
-                    <AppRouter />
-                </ToastProvider>
+                <SupplierAuthProvider>
+                    <ToastProvider>
+                        <AppRouter />
+                    </ToastProvider>
+                </SupplierAuthProvider>
             </AuthProvider>
         </BrowserRouter>,
         document.getElementById('app')

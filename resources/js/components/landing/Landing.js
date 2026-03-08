@@ -76,6 +76,30 @@ export default function Landing() {
                 </div>
             </section>
 
+            <section className="landing-partners">
+                <div className="section-header">
+                    <h2>Partner With Us</h2>
+                    <p>Join our network of trusted suppliers and grow your business.</p>
+                </div>
+
+                <div className="partners-grid">
+                    <div className="partner-card">
+                        <div className="partner-icon">🏭</div>
+                        <h3>Become a Supplier Partner</h3>
+                        <p>Manage purchase orders, track deliveries, and grow your business with real-time updates and automated workflows.</p>
+                        <div className="partner-benefits">
+                            <span className="benefit-tag">📋 Manage POs</span>
+                            <span className="benefit-tag">🚚 Track Deliveries</span>
+                            <span className="benefit-tag">📈 Grow Business</span>
+                        </div>
+                        <div className="partner-ctas">
+                            <Link to="/supplier/register" className="btn btn-primary">Register as Supplier</Link>
+                            <Link to="/supplier/login" className="btn btn-ghost">Supplier Login</Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <footer className="landing-footer">
                 <div className="logo">HRMS <span>Pro</span></div>
                 <div className="copy">© {new Date().getFullYear()} Hardware Retail Management System. All rights reserved.</div>

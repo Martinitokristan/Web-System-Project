@@ -9,6 +9,7 @@ class PurchaseOrder extends Model
     protected $fillable = [
         'po_number', 'supplier_id', 'created_by', 'is_auto',
         'status', 'expected_date', 'total_cost',
+        'rejection_reason', 'accepted_at',
     ];
 
     protected $casts = ['is_auto' => 'boolean'];

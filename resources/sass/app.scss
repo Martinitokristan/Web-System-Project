@@ -16,6 +16,8 @@
 @import 'landing';
 @import 'auth';
 @import 'rider';
+@import 'delivery';
+@import 'reports';
 @import 'settings';
 
 body {
@@ -60,4 +62,348 @@ body {
   gap: 1rem;
   color: var(--text2);
   font-size: 0.875rem;
+}
+
+// Purchase Order Creation Styles
+.po-create-form {
+  padding: 0.5rem;
+}
+
+.po-items-section {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.po-item-row {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--surface2);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.po-item-product select,
+.po-item-qty input,
+.po-item-cost input {
+  width: 100%;
+  min-width: 0;
+}
+
+.po-item-subtotal {
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
+  min-width: 80px;
+}
+
+.po-item-action {
+  display: flex;
+  justify-content: center;
+}
+
+.po-total {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 4px solid var(--accent);
+}
+
+// Form control improvements
+.form-control {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+.form-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+// Loading and error states for PO form
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.text-muted {
+  color: var(--text2);
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+// Disabled form controls
+.form-control:disabled {
+  background-color: var(--surface2);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+// Supplier Portal Styles
+.supplier-dashboard,
+.supplier-orders {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.supplier-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem;
+
+  .header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .back-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .supplier-name {
+        color: var(--text2);
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    text-align: center;
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      color: var(--text2);
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+  }
+}
+
+.dashboard-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem 2rem;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.po-list {
+  display: grid;
+  gap: 1rem;
+
+  .po-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+
+    .po-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+
+      .po-number {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: var(--accent);
+      }
+    }
+
+    .po-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+
+      .po-info {
+        .label {
+          color: var(--text2);
+          font-size: 0.75rem;
+          display: block;
+        }
+
+        .amount {
+          font-weight: 600;
+          color: var(--accent);
+        }
+      }
+    }
+  }
+}
+
+.info-section {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 2rem;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 1.5rem;
+
+    li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+  }
+}
+
+// Badge variants
+.badge--orange {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+// Items list in modal
+.items-list {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 1rem;
+
+  .item-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+// PO info grid
+.po-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+
+  .info-item {
+    .label {
+      color: var(--text2);
+      font-size: 0.875rem;
+      display: block;
+    }
+
+    .value {
+      font-weight: 500;
+    }
+  }
+}
+
+// Delivery notes
+.delivery-notes {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 1rem;
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text2);
+  }
+}
+
+// Utility classes
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mt-3 {
+  margin-top: 1.5rem;
 }

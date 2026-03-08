@@ -40,4 +40,22 @@ class CustomerController extends Controller
             ->get();
         return response()->json(['data' => $orders, 'status' => 'success']);
     }
+
+    public function myProfile(Request $request)
+    {
+        $profile = \App\Models\CustomerProfile::where('user_id', $request->user()->id)
+            ->first();
+        
+        if (!$profile) {
+            return response()->json([
+                'message' => 'Profile not found',
+                'status' => 'error'
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $profile,
+            'status' => 'success'
+        ]);
+    }
 }

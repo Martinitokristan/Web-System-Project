@@ -109,5 +109,8 @@ class DatabaseSeeder extends Seeder
 
         // No Variant Values, Categories, Suppliers, or Products are created here.
         // The user will start fresh via the HRMS dashboard.
+        
+        // ─── 4. SUPPLIERS ────────────────────────────────────────────────────
+        $this->call(SupplierSeeder::class);
     }
 }

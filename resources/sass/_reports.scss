@@ -1,0 +1,592 @@
+// Reports & Analytics Dashboard Styles
+// Modernized reports UI with charts, metrics, and export functionality
+
+.reports-dashboard {
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+// Header
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+// Export Controls
+.export-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+// Period Selector
+.period-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background: var(--surface);
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    width: fit-content;
+}
+
+.period-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text2);
+
+    &:hover {
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    &.active {
+        background: var(--accent);
+        color: white;
+    }
+}
+
+.period-short {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.period-label {
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+}
+
+// Main Stats
+.main-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+// Report Tabs
+.reports-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.report-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+
+    &:hover {
+        color: var(--accent);
+        background: var(--bg);
+    }
+
+    &.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        font-weight: 600;
+    }
+}
+
+// Metrics Grid
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.metric-icon {
+    font-size: 1.25rem;
+}
+
+.metric-title {
+    color: var(--text2);
+    font-size: 0.85rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.metric-progress {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.metric-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.metric-percentage {
+    font-size: 0.75rem;
+    color: var(--text3);
+}
+
+// Payment Methods
+.payment-methods {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.payment-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+
+    &.cod-only {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+    }
+}
+
+.payment-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border-radius: 10px;
+}
+
+.payment-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.payment-info {
+    flex: 1;
+}
+
+.payment-label {
+    font-size: 0.85rem;
+    color: var(--text2);
+    margin-bottom: 0.25rem;
+}
+
+.payment-count {
+    font-size: 0.75rem;
+    color: var(--text3);
+}
+
+.payment-amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+// Chart Section
+.chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-header {
+    margin-bottom: 1.5rem;
+}
+
+.chart-container {
+    height: 300px;
+    padding-bottom: 30px;
+}
+
+// Line Chart Styles
+.line-chart-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.chart-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.chart-total {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.chart-total-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.chart-total-label {
+    font-size: 0.75rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chart-svg-container {
+    flex: 1;
+    min-height: 250px;
+}
+
+.line-chart-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+// Modern Chart Section
+.modern-chart {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.line-chart-container {
+    height: 320px;
+    padding-bottom: 0;
+}
+
+// Horizontal Bar Chart (for Product Sales)
+.product-chart-container {
+    height: 320px;
+    padding-bottom: 0;
+}
+
+.horizontal-bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 1rem 0;
+    width: 100%;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bar-label {
+    width: 120px;
+    font-size: 0.8rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+
+.bar-track {
+    flex: 1;
+    height: 28px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    transition: width 0.5s ease;
+    min-width: 60px;
+}
+
+.bar-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+// Mini Stats
+.mini-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.mini-stat {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.mini-stat-icon {
+    font-size: 1.5rem;
+}
+
+.mini-stat-content {
+    flex: 1;
+}
+
+.mini-stat-label {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-bottom: 0.25rem;
+}
+
+.mini-stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.mini-stat-trend {
+    font-size: 0.8rem;
+    font-weight: 500;
+
+    &.up {
+        color: var(--green);
+    }
+
+    &.down {
+        color: var(--red);
+    }
+}
+
+// Products Tab
+.products-tab {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.products-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg);
+    border-radius: 10px;
+    transition: all 0.2s;
+
+    &:hover {
+        box-shadow: var(--shadow-sm);
+        transform: translateX(4px);
+    }
+}
+
+.product-rank {
+    font-size: 1.25rem;
+    font-weight: 700;
+    width: 40px;
+    text-align: center;
+}
+
+.product-info {
+    flex: 1;
+}
+
+.product-name {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.product-sku {
+    font-size: 0.75rem;
+    color: var(--text3);
+}
+
+.product-stats {
+    display: flex;
+    gap: 2rem;
+}
+
+.product-sales,
+.product-revenue {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.trend-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    &.hot {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+}
+
+// Empty States
+.empty-products {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text2);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+// Summary Footer
+.summary-footer {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: var(--bg);
+    border-radius: 10px;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text2);
+    font-size: 0.85rem;
+}
+
+// Skeleton Loading
+.reports-skeleton {
+    padding: 1.5rem;
+}
+
+.skeleton-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.skeleton-card {
+    height: 120px;
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 12px;
+}
+
+.skeleton-chart {
+    height: 300px;
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 12px;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+// Responsive Styles
+@media (max-width: 1200px) {
+    .main-stats { grid-template-columns: repeat(2, 1fr); }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .payment-grid { grid-template-columns: repeat(2, 1fr); }
+    .mini-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .skeleton-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .header-content { flex-direction: column; gap: 1rem; }
+    .export-controls { flex-wrap: wrap; justify-content: center; }
+    .main-stats { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr; }
+    .payment-grid { grid-template-columns: 1fr; }
+    .mini-stats-grid { grid-template-columns: 1fr; }
+    .skeleton-stats { grid-template-columns: 1fr; }
+    .product-item { flex-direction: column; align-items: flex-start; }
+    .product-stats { width: 100%; justify-content: space-between; }
+    .summary-footer { flex-direction: column; gap: 0.5rem; }
+    .reports-tabs { overflow-x: auto; }
+}

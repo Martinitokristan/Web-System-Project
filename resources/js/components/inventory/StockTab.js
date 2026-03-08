@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useToast } from '../../context/ToastContext';
 import FilterBar from '../shared/FilterBar';
 import Pagination from '../shared/Pagination';
-import Modal from '../shared/Modal';
 
 export default function StockTab() {
     const { showToast } = useToast();
@@ -15,10 +14,8 @@ export default function StockTab() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
 
-    // Adjustment Modal
-    const [adjModal, setAdjModal] = useState({ open: false, product: null });
-    const [adjForm, setAdjForm] = useState({ type: 'add', quantity: 1, reason: 'Manual audit' });
-    const [submitting, setSubmitting] = useState(false);
+    const [transferModal, setTransferModal] = useState({ show: false, item: null, qty: 1 });
+    const [transferLoading, setTransferLoading] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -47,22 +44,29 @@ export default function StockTab() {
         };
     }, [page, search, filter, refreshTrigger]);
 
-    const handleAdjust = async (e) => {
-        e.preventDefault();
-        setSubmitting(true);
+    const handleTransfer = async () => {
+        const qty = Number(transferModal.qty);
+        const available = Number(transferModal.item.warehouse_stock);
+
+        if (!transferModal.item || qty < 1 || qty > available) {
+            showToast('Invalid transfer quantity', 'error');
+            return;
+        }
+
+        setTransferLoading(true);
         try {
-            await axios.post('/inventory/adjust', {
-                product_id: adjModal.product.product_id,
-                variant_id: adjModal.product.variant_id,
-                ...adjForm
+            await axios.post('/inventory/transfer', {
+                product_id: transferModal.item.product_id,
+                variant_id: transferModal.item.variant_id || null,
+                quantity: transferModal.qty,
             });
-            showToast('Stock adjusted successfully');
-            setAdjModal({ open: false, product: null });
+            showToast('Stock transferred to storefront successfully!');
+            setTransferModal({ show: false, item: null, qty: 1 });
             triggerRefresh();
         } catch (err) {
-            showToast(err.response?.data?.message || 'Error adjusting stock', 'error');
+            showToast(err.response?.data?.message || 'Failed to transfer stock', 'error');
         } finally {
-            setSubmitting(false);
+            setTransferLoading(false);
         }
     };
 
@@ -87,23 +91,24 @@ export default function StockTab() {
                         <tr>
                             <th>SKU</th>
                             <th>Product Name</th>
-                            <th>Size</th>
-                            <th>Color</th>
-                            <th>Weight</th>
-                            <th>Current Stock</th>
+                            <th>Variant (Size/Color)</th>
+                            <th>Warehouse Stock</th>
+                            <th>Storefront Stock</th>
                             <th>Unit</th>
                             <th>Threshold</th>
-                            <th>Status</th>
-                            <th>Action</th>
+                            <th>Status (Storefront)</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="11" className="text-center py-4"><div className="spinner"/></td></tr>
+                            <tr><td colSpan="10" className="text-center py-4"><div className="spinner"/></td></tr>
                         ) : inventory.data.length === 0 ? (
-                            <tr><td colSpan="11" className="text-center py-4 text-muted">No inventory found</td></tr>
+                            <tr><td colSpan="10" className="text-center py-4 text-muted">No inventory found</td></tr>
                         ) : inventory.data.map(item => {
                             const isLow = item.current_stock <= item.reorder_threshold;
+                            const variantLabel = item.is_variant ? `${item.size !== '-' ? item.size : ''} ${item.color !== '-' ? item.color : ''}`.trim() : 'Base Product';
+
                             return (
                                 <tr key={item.id}>
                                     <td className="font-semi text-sm">{item.sku}</td>
@@ -111,10 +116,9 @@ export default function StockTab() {
                                         <div className="font-semi">{item.name}</div>
                                         <div className="text-muted text-sm">{item.supplier}</div>
                                     </td>
-                                    <td>{item.size}</td>
-                                    <td>{item.color}</td>
-                                    <td>{item.weight}</td>
-                                    <td className="td-amount font-bold text-lg">{item.current_stock}</td>
+                                    <td>{variantLabel || '-'}</td>
+                                    <td className="font-bold text-orange">{item.warehouse_stock}</td>
+                                    <td className="font-bold text-lg">{item.current_stock}</td>
                                     <td className="text-muted">{item.unit}</td>
                                     <td className="td-amount">{item.reorder_threshold}</td>
                                     <td>
@@ -123,12 +127,14 @@ export default function StockTab() {
                                             : <span className="badge badge--green">Optimal</span>}
                                     </td>
                                     <td>
-                                        <button className="btn btn--sm btn--ghost" onClick={() => {
-                                            setAdjForm({ type: 'add', quantity: 1, reason: 'Manual audit' });
-                                            setAdjModal({ open: true, product: item });
-                                        }}>
-                                            Adjust Stock
-                                        </button>
+                                        {item.warehouse_stock > 0 && (
+                                            <button 
+                                                className="btn btn--sm btn--primary"
+                                                onClick={() => setTransferModal({ show: true, item, qty: 1 })}
+                                            >
+                                                Transfer to Store
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -139,34 +145,56 @@ export default function StockTab() {
 
             <Pagination page={page} total={inventory.total} perPage={15} onChange={setPage} />
 
-            <Modal 
-                isOpen={adjModal.open} 
-                onClose={() => setAdjModal({open: false, product: null})} 
-                title={`Adjust Stock: ${adjModal.product?.name} ${adjModal.product?.is_variant ? `[${adjModal.product.sku}]` : ''}`} 
-                size="sm"
-            >
-                <form onSubmit={handleAdjust}>
-                    <div className="form-group">
-                        <label>Adjustment Type</label>
-                        <select value={adjForm.type} onChange={e => setAdjForm({...adjForm, type: e.target.value})}>
-                            <option value="add">Add Stock (+)</option>
-                            <option value="subtract">Deduct Stock (-)</option>
-                            <option value="set">Set Exact Amount (=)</option>
-                        </select>
+            {/* Transfer Modal */}
+            {transferModal.show && transferModal.item && (
+                <div className="modal-backdrop">
+                    <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Transfer to Storefront</h3>
+                            <button className="modal-close" onClick={() => setTransferModal({ show: false, item: null, qty: 1 })}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p className="mb-3">
+                                Transfer stock for <strong>{transferModal.item.name}</strong> 
+                                {transferModal.item.is_variant ? ` (${transferModal.item.size}/${transferModal.item.color})` : ''} 
+                                from Warehouse to Storefront.
+                            </p>
+                            
+                            <div className="form-group mb-3">
+                                <label className="form-label">Available in Warehouse</label>
+                                <input type="number" className="form-control" value={transferModal.item.warehouse_stock} disabled />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Quantity to Transfer</label>
+                                <input 
+                                    type="number" 
+                                    className="form-control" 
+                                    min="1" 
+                                    value={transferModal.qty}
+                                    onChange={(e) => setTransferModal({ ...transferModal, qty: Number(e.target.value) })}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer d-flex justify-end gap-2">
+                            <button 
+                                className="btn btn--secondary" 
+                                onClick={() => setTransferModal({ show: false, item: null, qty: 1 })}
+                                disabled={transferLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={handleTransfer}
+                                disabled={transferLoading}
+                            >
+                                {transferLoading ? 'Transferring...' : 'Confirm Transfer'}
+                            </button>
+                        </div>
                     </div>
-                    <div className="form-group">
-                        <label>Quantity</label>
-                        <input type="number" min="0" required value={adjForm.quantity} onChange={e => setAdjForm({...adjForm, quantity: e.target.value})} />
-                    </div>
-                    <div className="form-group mb-3">
-                        <label>Reason / Note</label>
-                        <input type="text" required value={adjForm.reason} onChange={e => setAdjForm({...adjForm, reason: e.target.value})} placeholder="e.g. Audit correction, Damaged goods" />
-                    </div>
-                    <button className="btn btn-primary w-full justify-center" disabled={submitting}>
-                        {submitting ? 'Saving...' : 'Confirm Adjustment'}
-                    </button>
-                </form>
-            </Modal>
+                </div>
+            )}
         </div>
     );
 }

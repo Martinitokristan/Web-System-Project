@@ -15,6 +15,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\RiderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,11 @@ use App\Http\Controllers\SupplierController;
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+// Supplier Auth (public)
+Route::post('/supplier/auth/register', [SupplierAuthController::class, 'register']);
+Route::post('/supplier/auth/login', [SupplierAuthController::class, 'login']);
+Route::post('/supplier/auth/verify-email', [SupplierAuthController::class, 'verifyEmail']);
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -33,8 +39,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
-    // Products & Categories
+    // Products & Categories & Inventory
     Route::apiResource('products', ProductController::class);
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::post('/inventory/transfer', [InventoryController::class, 'transferToStore']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
 
@@ -42,12 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('suppliers', SupplierController::class);
     Route::get('/unit-types', [\App\Http\Controllers\UnitTypeController::class, 'index']);
 
-    // Inventory
-    Route::get('/inventory', [InventoryController::class, 'index']);
-    Route::post('/inventory/{id}/adjust', [InventoryController::class, 'adjust']);
-    Route::post('/inventory/{id}/reorder', [InventoryController::class, 'reorder']);
-
-    // Sales
     Route::get('/sales/summary', [SaleController::class, 'summary']);
     Route::get('/sales', [SaleController::class, 'index']);
     Route::post('/sales', [SaleController::class, 'store']);
@@ -58,17 +60,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
     Route::get('/purchase-orders/{id}', [PurchaseOrderController::class, 'show']);
-    Route::put('/purchase-orders/{id}/approve', [PurchaseOrderController::class, 'approve']);
-    Route::put('/purchase-orders/{id}/receive', [PurchaseOrderController::class, 'markReceived']);
+    Route::post('/purchase-orders/{id}/approve', [PurchaseOrderController::class, 'approve']);
+    Route::post('/purchase-orders/{id}/receive', [PurchaseOrderController::class, 'markReceived']);
 
     // Deliveries
     Route::get('/deliveries', [DeliveryController::class, 'index']);
+    Route::get('/deliveries/{id}', [DeliveryController::class, 'show']);
     Route::put('/deliveries/{id}/assign', [DeliveryController::class, 'assignRider']);
     Route::put('/deliveries/{id}/status', [DeliveryController::class, 'updateStatus']);
+    Route::delete('/deliveries/{id}', [DeliveryController::class, 'destroy']);
 
     // Reports
     Route::get('/reports/sales', [ReportController::class, 'sales']);
     Route::get('/reports/inventory', [ReportController::class, 'inventory']);
+    Route::get('/reports/top-products', [ReportController::class, 'topProducts']);
     Route::get('/reports/export', [ReportController::class, 'export']);
 
     // Users
@@ -82,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Customers
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::get('/customer/orders', [CustomerController::class, 'myOrders']);
+    Route::get('/customer/profile', [CustomerController::class, 'myProfile']);
 
     // Riders
     Route::get('/riders', [RiderController::class, 'index']);
@@ -107,4 +113,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Category Management in Settings
     Route::post('/settings/categories', [SettingsController::class, 'saveCategory']);
     Route::delete('/settings/categories/{id}', [SettingsController::class, 'deleteCategory']);
+});
+
+// Supplier Protected Routes (outside auth:sanctum - uses supplier token auth)
+Route::middleware('supplier.auth')->group(function () {
+    Route::post('/supplier/auth/logout', [SupplierAuthController::class, 'logout']);
+    Route::get('/supplier/auth/profile', [SupplierAuthController::class, 'profile']);
+    Route::put('/supplier/auth/profile', [SupplierAuthController::class, 'updateProfile']);
+    Route::get('/supplier/purchase-orders', [PurchaseOrderController::class, 'supplierIndex']);
+    Route::get('/supplier/purchase-orders/{id}', [PurchaseOrderController::class, 'supplierShow']);
+    Route::post('/supplier/purchase-orders/{id}/accept', [PurchaseOrderController::class, 'accept']);
+    Route::post('/supplier/purchase-orders/{id}/reject', [PurchaseOrderController::class, 'reject']);
+    Route::post('/supplier/purchase-orders/{id}/deliver', [PurchaseOrderController::class, 'deliver']);
 });

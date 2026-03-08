@@ -33,7 +33,7 @@ export default function Products() {
             try {
                 const [cats, sups, units, settingsData] = await Promise.all([
                     axios.get('/categories'),
-                    axios.get('/suppliers'),
+                    axios.get('/suppliers', { params: { no_pagination: 1 } }),
                     axios.get('/unit-types'),
                     axios.get('/settings')
                 ]);

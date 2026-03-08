@@ -9,6 +9,11 @@ class RiderProfile extends Model
     protected $fillable = [
         'user_id', 'vehicle_type', 'plate_number',
         'availability', 'total_deliveries', 'on_time_count',
+        'valid_id_type', 'valid_id_path', 'address', 'interview_at',
+    ];
+
+    protected $casts = [
+        'interview_at' => 'datetime',
     ];
 
     public function user()

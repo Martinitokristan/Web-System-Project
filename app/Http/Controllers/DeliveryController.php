@@ -10,17 +10,60 @@ class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
-        $deliveries = Delivery::with(['sale.customer', 'sale.items.product', 'rider'])
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
+        $query = Delivery::with(['sale.customer', 'sale.items.product', 'rider'])
+            ->when($request->status && $request->status !== 'all', fn($q) => $q->where('status', $request->status))
             ->when($request->rider_id === 'me' && $request->user(), fn($q) => $q->where('rider_id', $request->user()->id))
-            ->when($request->rider_id && $request->rider_id !== 'me', fn($q) => $q->where('rider_id', $request->rider_id))
-            ->latest()
-            ->get();
+            ->when($request->rider_id && $request->rider_id !== 'me', fn($q) => $q->where('rider_id', $request->rider_id));
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('tracking_number', 'like', "%{$request->search}%")
+                  ->orWhere('address', 'like', "%{$request->search}%")
+                  ->orWhereHas('sale', function ($sq) use ($request) {
+                      $sq->where('order_number', 'like', "%{$request->search}%")
+                         ->orWhereHas('customer', function ($cq) use ($request) {
+                             $cq->where('name', 'like', "%{$request->search}%");
+                         });
+                  })
+                  ->orWhereHas('rider', function ($rq) use ($request) {
+                      $rq->where('name', 'like', "%{$request->search}%");
+                  });
+            });
+        }
+
+        $deliveries = $query->latest()->paginate($request->get('per_page', 15));
+
+        $today = now()->toDateString();
+        $stats = [
+            'total' => Delivery::count(),
+            'pending' => Delivery::where('status', 'pending')->count(),
+            'in_progress' => Delivery::where('status', 'in_progress')->count(),
+            'delivered' => Delivery::where('status', 'delivered')->count(),
+            'failed' => Delivery::where('status', 'failed')->count(),
+            'today_delivered' => Delivery::where('status', 'delivered')->whereDate('updated_at', $today)->count(),
+        ];
 
         return response()->json([
             'data'   => $deliveries,
+            'stats'  => $stats,
             'status' => 'success',
         ]);
+    }
+
+    public function show($id)
+    {
+        $delivery = Delivery::with(['sale.customer', 'sale.items.product', 'rider'])->findOrFail($id);
+        return response()->json(['data' => $delivery, 'status' => 'success']);
+    }
+
+    public function destroy($id)
+    {
+        $delivery = Delivery::findOrFail($id);
+        if ($delivery->status !== 'pending') {
+            return response()->json(['message' => 'Only pending deliveries can be deleted.', 'status' => 'error'], 422);
+        }
+        $delivery->delete();
+        return response()->json(['status' => 'success']);
     }
 
     public function assignRider(Request $request, $id)

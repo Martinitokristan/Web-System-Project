@@ -48,6 +48,7 @@ class InventoryController extends Controller
                         'category' => $p->category ? $p->category->name : '-',
                         'unit' => $p->unitType ? $p->unitType->abbreviation : '-',
                         'current_stock' => $v->stock,
+                        'warehouse_stock' => \App\Models\Inventory::where('product_id', $p->id)->where('product_variant_id', $v->id)->value('warehouse_stock') ?? 0,
                         'reorder_threshold' => ($p->inventory && $p->inventory->reorder_threshold) ? $p->inventory->reorder_threshold : 10,
                         'size' => ($v->sizeValue && $v->sizeValue->label) ? $v->sizeValue->label : '-',
                         'color' => ($v->colorValue && $v->colorValue->label) ? $v->colorValue->label : '-',
@@ -66,6 +67,7 @@ class InventoryController extends Controller
                     'category' => $p->category ? $p->category->name : '-',
                     'unit' => $p->unitType ? $p->unitType->abbreviation : '-',
                     'current_stock' => $p->inventory ? $p->inventory->current_stock : 0,
+                    'warehouse_stock' => $p->inventory ? $p->inventory->warehouse_stock : 0,
                     'reorder_threshold' => $p->inventory ? $p->inventory->reorder_threshold : 10,
                     'size' => '-',
                     'color' => '-',
@@ -176,5 +178,52 @@ class InventoryController extends Controller
             'message' => 'Reorder PO created successfully',
             'status'  => 'success',
         ], 201);
+    }
+
+    public function transferToStore(Request $request)
+    {
+        $data = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'variant_id' => 'nullable|exists:product_variants,id',
+            'quantity'   => 'required|numeric|min:1',
+        ]);
+
+        $product = Product::findOrFail($data['product_id']);
+
+        DB::transaction(function () use ($product, $data, $request) {
+            $inv = Inventory::where('product_id', $product->id)
+                ->where('product_variant_id', $data['variant_id'] ?? null)
+                ->firstOrFail();
+
+            if ($inv->warehouse_stock < $data['quantity']) {
+                abort(422, 'Insufficient warehouse stock for transfer.');
+            }
+
+            // Deduct from warehouse
+            $inv->decrement('warehouse_stock', $data['quantity']);
+
+            // Add to storefront
+            if ($data['variant_id']) {
+                $variant = \App\Models\ProductVariant::findOrFail($data['variant_id']);
+                $variant->increment('stock', $data['quantity']);
+                $product->syncStockWithVariants(); // Sync base inventory's current_stock
+            } else {
+                $inv->increment('current_stock', $data['quantity']);
+            }
+
+            InventoryAdjustment::create([
+                'product_id' => $product->id,
+                'user_id'    => $request->user()->id,
+                'type'       => 'add',
+                'quantity'   => $data['quantity'],
+                'note'       => 'Transferred from Warehouse to Storefront',
+                'created_at' => now(),
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Stock transferred to storefront successfully',
+            'status'  => 'success',
+        ]);
     }
 }

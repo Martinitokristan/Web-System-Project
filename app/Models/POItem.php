@@ -8,7 +8,7 @@ class POItem extends Model
 {
     public $timestamps = false;
     protected $table = 'purchase_order_items';
-    protected $fillable = ['purchase_order_id', 'product_id', 'quantity', 'unit_cost', 'subtotal'];
+    protected $fillable = ['purchase_order_id', 'product_id', 'product_variant_id', 'quantity', 'unit_cost', 'subtotal'];
 
     public function purchaseOrder()
     {
@@ -18,5 +18,10 @@ class POItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function productVariant()
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 }

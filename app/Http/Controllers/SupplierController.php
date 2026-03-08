@@ -7,10 +7,34 @@ use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $query = Supplier::query();
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('contact_name', 'like', "%{$request->search}%")
+                  ->orWhere('email', 'like', "%{$request->search}%");
+            });
+        }
+
+        if ($request->status && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->no_pagination) {
+            $suppliers = $query->withCount(['products', 'purchaseOrders'])->get();
+            return response()->json([
+                'data'   => $suppliers,
+                'status' => 'success',
+            ]);
+        }
+
+        $suppliers = $query->withCount(['products', 'purchaseOrders'])->paginate($request->get('per_page', 15));
+
         return response()->json([
-            'data'   => Supplier::all(),
+            'data'   => $suppliers,
             'status' => 'success',
         ]);
     }

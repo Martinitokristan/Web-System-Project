@@ -90,6 +90,16 @@ class RiderController extends Controller
         $riderId = $request->user()->id;
         $today = now()->startOfDay();
 
+        // Update rider's current location if provided
+        if ($request->has(['latitude', 'longitude'])) {
+            $profile = \App\Models\RiderProfile::where('user_id', $riderId)->first();
+            if ($profile) {
+                $profile->current_latitude = $request->latitude;
+                $profile->current_longitude = $request->longitude;
+                $profile->save();
+            }
+        }
+
         $stats = [
             'total'     => \App\Models\Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->count(),
             'done'      => \App\Models\Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'delivered')->count(),
@@ -104,21 +114,40 @@ class RiderController extends Controller
             ->latest()
             ->get();
 
+        // Get rider's current location for distance calculations
+        $riderProfile = \App\Models\RiderProfile::where('user_id', $riderId)->first();
+        $riderLat = $riderProfile->current_latitude ?? 7.0707; // Default Davao coordinates
+        $riderLon = $riderProfile->current_longitude ?? 125.6080;
+
+        $distanceCalculator = app(\App\Services\DistanceCalculator::class);
+
         $nearby = \App\Models\Delivery::with(['sale.customer.customerProfile', 'sale.items.product'])
             ->whereNull('rider_id')
             ->where('status', 'pending')
             ->latest()
             ->get()
-            ->map(function($d) {
+            ->map(function($d) use ($riderLat, $riderLon, $distanceCalculator) {
                 // Use real coordinates from customer profile, or fallback to mock
                 $profile = $d->sale->customer->customerProfile;
-                
-                $d->latitude = $profile->latitude ?? (7.07 + (rand(-10, 10) / 1000));
-                $d->longitude = $profile->longitude ?? (125.60 + (rand(-10, 10) / 1000));
-                $d->distance = round(rand(5, 45) / 10, 1) . ' km';
-                
+
+                $customerLat = $profile->latitude ?? (7.07 + (rand(-10, 10) / 1000));
+                $customerLon = $profile->longitude ?? (125.60 + (rand(-10, 10) / 1000));
+
+                // Calculate real distance using Haversine formula
+                $distanceKm = $distanceCalculator->calculateDistance($riderLat, $riderLon, $customerLat, $customerLon);
+                $d->latitude = $customerLat;
+                $d->longitude = $customerLon;
+                $d->distance = $distanceCalculator->formatDistance($distanceKm);
+                $d->distance_value = $distanceKm; // For sorting
+
+                // Calculate ETA (assuming 15 km/h average speed)
+                $eta = $distanceCalculator->calculateETA($distanceKm);
+                $d->eta = $eta['text'];
+
                 return $d;
-            });
+            })
+            ->sortBy('distance_value') // Sort by actual distance (closest first)
+            ->values();
 
         return response()->json([
             'data' => [

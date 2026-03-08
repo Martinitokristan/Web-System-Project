@@ -3,10 +3,32 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Supplier extends Model
+class Supplier extends Authenticatable
 {
-    protected $fillable = ['name', 'contact_name', 'email', 'phone', 'address'];
+    use HasApiTokens, Notifiable;
+
+    protected $fillable = [
+        'name',
+        'contact_name',
+        'email',
+        'phone',
+        'address',
+        'password',
+        'status'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 
     public function products()
     {
@@ -16,5 +38,21 @@ class Supplier extends Model
     public function purchaseOrders()
     {
         return $this->hasMany(PurchaseOrder::class);
+    }
+
+    // Helper methods for supplier status
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
+
+    public function isPending()
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isInactive()
+    {
+        return $this->status === 'inactive';
     }
 }

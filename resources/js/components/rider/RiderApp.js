@@ -86,7 +86,12 @@ export default function RiderApp() {
 
     const fetchData = async () => {
         try {
-            const res = await axios.get('/riders/me/dashboard');
+            const res = await axios.get('/riders/me/dashboard', {
+                params: hasGeo ? {
+                    latitude: riderPos[0],
+                    longitude: riderPos[1]
+                } : {}
+            });
             const d = res.data.data;
             setStats(d.stats);
             setNearby(d.nearby);
@@ -225,6 +230,7 @@ export default function RiderApp() {
                                     </div>
                                     <div className="card-footer">
                                         <span className="time">PLACED {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toUpperCase()}</span>
+                                        <div className="eta-info">⏱️ {order.eta || 'N/A'}</div>
                                         <button className="accept-btn" onClick={() => handleAction(order.id, 'assigned', 'Order accepted!')}>ACCEPT ORDER →</button>
                                     </div>
                                 </div>

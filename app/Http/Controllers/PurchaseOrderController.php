@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\PurchaseOrder;
 use App\Models\POItem;
 use App\Models\Inventory;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -26,12 +28,13 @@ class PurchaseOrderController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'supplier_id'    => 'required|exists:suppliers,id',
-            'items'          => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity'   => 'required|numeric|min:1',
-            'items.*.unit_cost'  => 'required|numeric|min:0',
-            'expected_date'  => 'nullable|date',
+            'supplier_id'                    => 'required|exists:suppliers,id',
+            'items'                          => 'required|array|min:1',
+            'items.*.product_id'             => 'required|exists:products,id',
+            'items.*.product_variant_id'     => 'nullable|exists:product_variants,id',
+            'items.*.quantity'               => 'required|numeric|min:1',
+            'items.*.unit_cost'              => 'required|numeric|min:0',
+            'expected_date'                  => 'nullable|date',
         ]);
 
         $po = DB::transaction(function () use ($data, $request) {
@@ -41,7 +44,7 @@ class PurchaseOrderController extends Controller
                 'supplier_id'   => $data['supplier_id'],
                 'created_by'    => $request->user()->id,
                 'is_auto'       => false,
-                'status'        => 'draft',
+                'status'        => 'pending',
                 'expected_date' => $data['expected_date'] ?? null,
                 'total_cost'    => 0,
             ]);
@@ -50,11 +53,12 @@ class PurchaseOrderController extends Controller
                 $subtotal = $item['quantity'] * $item['unit_cost'];
                 $total += $subtotal;
                 POItem::create([
-                    'purchase_order_id' => $po->id,
-                    'product_id'        => $item['product_id'],
-                    'quantity'          => $item['quantity'],
-                    'unit_cost'         => $item['unit_cost'],
-                    'subtotal'          => $subtotal,
+                    'purchase_order_id'  => $po->id,
+                    'product_id'         => $item['product_id'],
+                    'product_variant_id' => $item['product_variant_id'] ?? null,
+                    'quantity'           => $item['quantity'],
+                    'unit_cost'          => $item['unit_cost'],
+                    'subtotal'           => $subtotal,
                 ]);
             }
 
@@ -63,7 +67,7 @@ class PurchaseOrderController extends Controller
         });
 
         return response()->json([
-            'data'    => $po->load(['supplier', 'items.product']),
+            'data'    => $po->load(['supplier', 'items.product', 'items.productVariant.sizeValue', 'items.productVariant.colorValue']),
             'message' => 'Purchase order created',
             'status'  => 'success',
         ], 201);
@@ -71,18 +75,73 @@ class PurchaseOrderController extends Controller
 
     public function show($id)
     {
-        $po = PurchaseOrder::with(['supplier', 'creator', 'items.product'])->findOrFail($id);
+        $po = PurchaseOrder::with([
+            'supplier', 'creator',
+            'items.product',
+            'items.productVariant.sizeValue',
+            'items.productVariant.colorValue',
+            'items.productVariant.weightValue',
+        ])->findOrFail($id);
         return response()->json(['data' => $po, 'status' => 'success']);
     }
 
     public function approve($id)
     {
         $po = PurchaseOrder::findOrFail($id);
-        $po->update(['status' => 'submitted']);
+
+        if ($po->status !== 'pending') {
+            return response()->json(['message' => 'Only pending POs can be sent to supplier.', 'status' => 'error'], 422);
+        }
+
+        $po->update(['status' => 'pending_supplier']);
 
         return response()->json([
             'data'    => $po,
-            'message' => 'Purchase order approved',
+            'message' => 'Purchase order sent to supplier for confirmation.',
+            'status'  => 'success',
+        ]);
+    }
+
+    public function accept($id)
+    {
+        $supplier = request()->user();
+
+        $po = PurchaseOrder::where('supplier_id', $supplier->id)
+            ->where('status', 'pending_supplier')
+            ->findOrFail($id);
+
+        $po->update([
+            'status'      => 'accepted',
+            'accepted_at' => now(),
+        ]);
+
+        return response()->json([
+            'data'    => $po->fresh()->load(['supplier', 'items.product']),
+            'message' => 'Purchase order accepted. You can now mark it as delivered when ready.',
+            'status'  => 'success',
+        ]);
+    }
+
+    public function reject($id)
+    {
+        $supplier = request()->user();
+
+        $data = request()->validate([
+            'rejection_reason' => 'required|string|min:10|max:1000',
+        ]);
+
+        $po = PurchaseOrder::where('supplier_id', $supplier->id)
+            ->where('status', 'pending_supplier')
+            ->findOrFail($id);
+
+        $po->update([
+            'status'           => 'rejected',
+            'rejection_reason' => $data['rejection_reason'],
+        ]);
+
+        return response()->json([
+            'data'    => $po->fresh()->load(['supplier', 'items.product']),
+            'message' => 'Purchase order rejected. The admin has been notified.',
             'status'  => 'success',
         ]);
     }
@@ -91,14 +150,46 @@ class PurchaseOrderController extends Controller
     {
         $po = PurchaseOrder::with('items')->findOrFail($id);
 
+        if ($po->status !== 'supplier_delivered') {
+            return response()->json([
+                'message' => 'Only delivered POs can be marked as received.',
+                'status'  => 'error',
+            ], 422);
+        }
+
         DB::transaction(function () use ($po) {
-            // Add stock for each item
             foreach ($po->items as $item) {
-                $inv = Inventory::where('product_id', $item->product_id)->first();
-                if ($inv) {
-                    $inv->increment('current_stock', $item->quantity);
+                if ($item->product_variant_id) {
+                    // Update warehouse stock for this specific variant
+                    $inv = Inventory::firstOrCreate(
+                        [
+                            'product_id'         => $item->product_id,
+                            'product_variant_id' => $item->product_variant_id,
+                        ],
+                        [
+                            'current_stock'     => 0,
+                            'warehouse_stock'   => 0,
+                            'reorder_threshold' => 10,
+                        ]
+                    );
+                    $inv->increment('warehouse_stock', $item->quantity);
                     $inv->last_adjusted_at = now();
-                    $inv->updated_at = now();
+                    $inv->save();
+                } else {
+                    // No variant — update base product inventory's warehouse stock
+                    $inv = Inventory::firstOrCreate(
+                        [
+                            'product_id'         => $item->product_id,
+                            'product_variant_id' => null,
+                        ],
+                        [
+                            'current_stock'     => 0,
+                            'warehouse_stock'   => 0,
+                            'reorder_threshold' => 10,
+                        ]
+                    );
+                    $inv->increment('warehouse_stock', $item->quantity);
+                    $inv->last_adjusted_at = now();
                     $inv->save();
                 }
             }
@@ -106,8 +197,95 @@ class PurchaseOrderController extends Controller
         });
 
         return response()->json([
+            'data'    => $po->fresh()->load(['supplier', 'items.product', 'items.productVariant']),
+            'message' => 'Purchase order received. Stock added to Warehouse inventory.',
+            'status'  => 'success',
+        ]);
+    }
+
+    // Supplier-specific methods
+    public function supplierIndex(Request $request)
+    {
+        try {
+            $supplier = $request->user();
+            
+            \Log::info('SupplierIndex called', [
+                'user' => $supplier ? $supplier->toArray() : 'null',
+                'has_auth_header' => $request->hasHeader('Authorization'),
+                'bearer_token' => $request->bearerToken() ? 'present' : 'missing'
+            ]);
+
+            if (!$supplier) {
+                \Log::error('SupplierIndex: No supplier found in request');
+                return response()->json([
+                    'message' => 'Unauthorized. Supplier not found.',
+                    'status' => 'error'
+                ], 401);
+            }
+
+            \Log::info('SupplierIndex: Building query', ['supplier_id' => $supplier->id]);
+
+            $query = PurchaseOrder::with(['supplier', 'creator', 'items.product'])
+                ->where('supplier_id', $supplier->id)
+                ->when($request->status, fn($q) => $q->where('status', $request->status))
+                ->latest();
+
+            \Log::info('SupplierIndex: Executing query');
+            $result = $query->paginate($request->get('per_page', 15));
+            \Log::info('SupplierIndex: Query successful', ['count' => $result->count()]);
+
+            return response()->json([
+                'data'   => $result,
+                'status' => 'success',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('SupplierIndex error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Server error: ' . $e->getMessage(),
+                'status' => 'error'
+            ], 500);
+        }
+    }
+
+    public function supplierShow($id)
+    {
+        $supplier = request()->user();
+
+        $po = PurchaseOrder::with(['supplier', 'creator', 'items.product'])
+            ->where('supplier_id', $supplier->id)
+            ->findOrFail($id);
+
+        return response()->json(['data' => $po, 'status' => 'success']);
+    }
+
+    public function deliver($id)
+    {
+        $supplier = request()->user();
+
+        $po = PurchaseOrder::where('supplier_id', $supplier->id)
+            ->where('status', 'accepted')
+            ->findOrFail($id);
+
+        $data = request()->validate([
+            'delivery_notes' => 'nullable|string|max:500',
+        ]);
+
+        $po->update([
+            'status' => 'supplier_delivered',
+            'delivered_at' => now(),
+            'delivered_by' => $supplier->id,
+            'delivery_notes' => $data['delivery_notes'] ?? null,
+        ]);
+
+        // TODO: Send notification to admin
+
+        return response()->json([
             'data'    => $po->fresh()->load(['supplier', 'items.product']),
-            'message' => 'Purchase order marked as received. Stock updated.',
+            'message' => 'Purchase order marked as delivered',
             'status'  => 'success',
         ]);
     }

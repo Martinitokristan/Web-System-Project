@@ -11,7 +11,19 @@ export default function Badge({ text, variant = 'gray' }) {
 
 // Auto-detect variant from status string
 export function StatusBadge({ status }) {
-    return <Badge text={status} variant={status} />;
+    const variantMap = {
+        'draft': 'gray',
+        'pending': 'yellow',
+        'approved': 'blue',
+        'supplier_delivered': 'orange',
+        'received': 'green',
+        'active': 'green',
+        'inactive': 'gray',
+        'low_stock': 'red'
+    };
+    
+    const variant = variantMap[status] || 'gray';
+    return <Badge text={status} variant={variant} />;
 }
 
 export function RoleBadge({ role }) {
