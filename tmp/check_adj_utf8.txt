@@ -1,4 +1,0 @@
-﻿=== Inventory Adjustments for Product ID 1 (Screwdriver) ===
-
-=== Purchase Order PO-0002 Details ===
-PO Record: {"id":2,"po_number":"PO-0002","supplier_id":2,"created_by":1,"is_auto":0,"status":"received","expected_date":null,"delivered_at":null,"delivered_by":null,"delivery_notes":null,"rejection_reason":null,"accepted_at":"2026-03-08 10:48:07","total_cost":"130000.00","created_at":"2026-03-08 09:31:03","updated_at":"2026-03-08 10:49:50"}

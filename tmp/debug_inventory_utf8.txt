@@ -1,6 +1,0 @@
-﻿=== Searching for products matching 'Screw' or 'Driver' ===
-Product: [1] Screwdriver | SKU: POLO-001
-  Inventory Record: {"id":1,"product_id":1,"current_stock":"193.00","reorder_threshold":"10.00","last_adjusted_at":"2026-03-08 10:49:50","updated_at":"2026-03-08 10:49:50"}
-  PO: PO-0001 | Status: pending | Qty: 50.00
-  PO: PO-0002 | Status: received | Qty: 50.00
-  PO: PO-0003 | Status: pending | Qty: 10.00

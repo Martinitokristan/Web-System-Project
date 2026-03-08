@@ -96,6 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/riders/me/toggle-status', [RiderController::class, 'toggleStatus']);
     Route::get('/riders/available', [RiderController::class, 'availableRiders']);
     Route::get('/riders/{id}/stats', [RiderController::class, 'stats']);
+    Route::post('/riders/{id}/interview', [RiderController::class, 'scheduleInterview']);
+    Route::post('/riders/{id}/approve', [RiderController::class, 'approveRider']);
 
     // Settings
     Route::get('/settings', [SettingsController::class, 'index']);

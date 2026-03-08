@@ -19,7 +19,8 @@ export function StatusBadge({ status }) {
         'received': 'green',
         'active': 'green',
         'inactive': 'gray',
-        'low_stock': 'red'
+        'low_stock': 'red',
+        'interview_set': 'blue'
     };
     
     const variant = variantMap[status] || 'gray';

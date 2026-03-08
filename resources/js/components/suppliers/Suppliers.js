@@ -260,9 +260,6 @@ export default function Suppliers() {
                                         <button className="btn btn-sm btn-ghost me-1" onClick={() => setViewSupplierId(supplier.id)}>
                                             👁️ View
                                         </button>
-                                        <button className="btn btn-sm btn-ghost me-1" onClick={() => handleEdit(supplier)}>
-                                            ✏️ Edit
-                                        </button>
                                         <button className="btn btn-sm btn-danger" onClick={() => setDeleteId(supplier.id)}>
                                             🗑️
                                         </button>
@@ -304,6 +301,7 @@ export default function Suppliers() {
                 isOpen={!!viewSupplierId} 
                 onClose={() => setViewSupplierId(null)} 
                 supplierId={viewSupplierId} 
+                onEdit={(supplier) => { setViewSupplierId(null); handleEdit(supplier); }}
             />
 
             {/* Styles */}

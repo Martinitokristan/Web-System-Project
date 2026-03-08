@@ -295,7 +295,7 @@ export default function PurchaseTab() {
                                     <div className="font-semi">{po.supplier?.name}</div>
                                     <div className="text-sm text-muted">{po.supplier?.email}</div>
                                 </td>
-                                <td className="font-bold text-red">₱{Number(po.total_amount).toFixed(2)}</td>
+                                <td className="font-bold text-red">₱{Number(po.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td>{po.items?.length || 0} items</td>
                                 <td><StatusBadge status={po.status} /></td>
                                 <td>
@@ -350,14 +350,14 @@ export default function PurchaseTab() {
                                                     <span className="text-sm text-muted ml-1">({i.product?.sku})</span>
                                                 </td>
                                                 <td className="font-bold">{i.quantity}</td>
-                                                <td>₱{Number(i.unit_cost).toFixed(2)}</td>
-                                                <td className="font-semi">₱{Number(i.subtotal).toFixed(2)}</td>
+                                                <td>₱{Number(i.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td className="font-semi">₱{Number(i.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             </tr>
                                         );
                                     })}
                                     <tr>
                                         <td colSpan="3" className="text-right font-semi">Total PO Cost:</td>
-                                        <td className="font-bold text-lg text-red">₱{Number(viewPo.total_amount).toFixed(2)}</td>
+                                        <td className="font-bold text-lg text-red">₱{Number(viewPo.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -544,7 +544,7 @@ export default function PurchaseTab() {
                                     />
                                 </div>
                                 <div className="po-item-subtotal">
-                                    ₱{(Number(item.quantity) * Number(item.unit_cost)).toFixed(2)}
+                                    ₱{(Number(item.quantity) * Number(item.unit_cost)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                                 <div className="po-item-action">
                                     <button 
@@ -563,7 +563,7 @@ export default function PurchaseTab() {
                     <div className="po-total mb-3">
                         <div className="d-flex justify-between">
                             <span>Total Items: {poForm.items.length}</span>
-                            <span className="font-bold text-lg">Total: ₱{calculateTotal().toFixed(2)}</span>
+                            <span className="font-bold text-lg">Total: ₱{calculateTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
 

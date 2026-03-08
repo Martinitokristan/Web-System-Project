@@ -127,6 +127,28 @@ export default function RiderApp() {
 
     if (loading) return <div className="loading-page"><div className="spinner" /></div>;
 
+    if (user && user.status !== 'active') {
+        return (
+            <div className="auth-page auth-page--wide flex-center" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center', background: 'var(--surface)' }}>
+                <div className="auth-box" style={{ maxWidth: '500px' }}>
+                    <div className="auth-logo" style={{ marginBottom: '2rem' }}>HRMS <span>Pro</span></div>
+                    <div className="illus-icon" style={{ fontSize: '5rem', marginBottom: '1.5rem' }}>
+                        {user.status === 'pending' ? '⏳' : '📅'}
+                    </div>
+                    <h1 className="auth-headline" style={{ textTransform: 'capitalize' }}>Account {user.status.replace('_', ' ')}</h1>
+                    <p className="auth-sub" style={{ maxWidth: '400px', margin: '0 auto 2rem', lineHeight: '1.6' }}>
+                        {user.status === 'pending' 
+                          ? "Thank you for applying! Our HR team is currently reviewing your documents and vehicle information. We'll contact you soon to schedule an in-person interview."
+                          : "Great news! Your interview has been scheduled. Please check your registered email for the specific date and location. See you there!"}
+                    </p>
+                    <div className="d-flex flex-column gap-2">
+                        <button className="btn btn-primary" onClick={triggerRefresh}>Check Status Again</button>
+                        <button className="btn btn-outline-primary" onClick={logout}>Sign Out</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className={`rider-dashboard-v2 ${hideMap ? 'hide-map' : ''}`}>
             {/* Sidebar / List View */}

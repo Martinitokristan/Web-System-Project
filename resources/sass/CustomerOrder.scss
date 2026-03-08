@@ -1,0 +1,162 @@
+// CustomerOrder.scss - Modern TikTok-Inspired Design
+
+// Base font size for 100% zoom
+.customer-order-bg {
+    background: #f8fafc;
+    min-height: 100vh;
+    padding: 2rem 5%; // Reduced padding
+    font-size: 14px; // Slightly smaller base font
+}
+
+.customer-order-container {
+    max-width: 900px; // Reduced for better proportions
+    margin: 0 auto;
+}
+
+.customer-order-card {
+    background: #fff;
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem; // Reduced padding
+    width: 100%;
+    margin: 0 auto;
+}
+
+.customer-order-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.customer-order-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.customer-order-step span {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.customer-order-step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.customer-order-step-1 {
+    background: var(--accent);
+    color: #fff;
+}
+
+.customer-order-step-2 {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    color: var(--text3);
+}
+
+.customer-order-step-2.active {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+}
+
+.customer-order-divider {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+}
+
+.customer-order-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr; // Adjusted ratio
+    gap: 2.5rem;
+}
+
+// Form and summary containers
+.customer-order-form,
+.customer-order-summary {
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.customer-order-form-inner,
+.customer-order-summary-inner {
+    background: #fff;
+    border: 1px solid #e8eaed;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem; // Reduced padding
+}
+
+.customer-order-summary-inner {
+    height: fit-content;
+}
+
+// Section titles
+.section-title {
+    font-size: 1.125rem; // 18px
+    font-weight: 600;
+    color: var(--text1);
+    margin-bottom: 1rem;
+}
+
+// Payment option styling
+.payment-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px solid #e0e0e0;
+    transition: border-color 0.2s;
+}
+
+.payment-option:hover {
+    border-color: var(--accent);
+}
+
+.payment-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+}
+
+.payment-option label {
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+    cursor: pointer;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .customer-order-bg {
+        padding: 1rem;
+    }
+
+    .customer-order-card {
+        padding: 1rem;
+    }
+
+    .customer-order-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .section-title {
+        font-size: 1rem;
+    }
+}

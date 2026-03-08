@@ -157,6 +157,8 @@ export default function Register() {
 
                     <div className="auth-footer">
                         Already have an account? <Link to="/login">Sign in</Link>
+                        <hr className="my-4 op-1" />
+                        <Link to="/rider/register" className="text-amber font-semi text-sm">Join our delivery fleet! Apply as a Rider &rarr;</Link>
                     </div>
                 </div>
             </div>

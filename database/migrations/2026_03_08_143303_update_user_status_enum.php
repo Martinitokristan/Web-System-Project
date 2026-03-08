@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddApprovalFieldsToRiderProfiles extends Migration
+class UpdateUserStatusEnum extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class AddApprovalFieldsToRiderProfiles extends Migration
      */
     public function up()
     {
-        Schema::table('rider_profiles', function (Blueprint $table) {
-            //
+        Schema::table('users', function (Blueprint $table) {
+            \DB::statement("ALTER TABLE users MODIFY COLUMN status ENUM('active', 'suspended', 'pending', 'interview_set') DEFAULT 'active'");
         });
     }
 
@@ -25,7 +25,7 @@ class AddApprovalFieldsToRiderProfiles extends Migration
      */
     public function down()
     {
-        Schema::table('rider_profiles', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table) {
             //
         });
     }

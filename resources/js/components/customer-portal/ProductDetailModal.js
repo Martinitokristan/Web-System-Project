@@ -175,7 +175,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onAddToCa
 
 
                     <div className="pdm-price-row">
-                        <div className="pdm-price">₱{Number(currentPrice).toFixed(2)}</div>
+                        <div className="pdm-price">₱{Number(currentPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
 
                     </div>
 
@@ -281,7 +281,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onAddToCa
                                 ? 'Out of Stock'
                                 : (needsColor || needsSize)
                                     ? `Select ${[needsColor ? 'Color' : '', needsSize ? 'Size' : ''].filter(Boolean).join(' & ')}`
-                                    : (product.cartId ? `Update Cart — ₱${subtotal.toFixed(2)}` : `Add to Cart — ₱${subtotal.toFixed(2)}`)}
+                                    : (product.cartId ? `Update Cart — ₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `Add to Cart — ₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
                         </button>
                     </div>
                 </div>

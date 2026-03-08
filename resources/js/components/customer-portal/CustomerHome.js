@@ -15,9 +15,45 @@ export default function CustomerHome() {
     const [categoryFilter, setCategoryFilter] = useState('');
 
     const [cart, setCart] = useState([]);
-    const [cartOpen, setCartOpen] = useState(false);
+    const [flyingItem, setFlyingItem] = useState(null);
     
     const [selectedProduct, setSelectedProduct] = useState(null);
+
+    // Load cart from localStorage on mount
+    useEffect(() => {
+        const savedCart = localStorage.getItem('hrms_cart');
+        if (savedCart) {
+            try {
+                setCart(JSON.parse(savedCart));
+            } catch (e) {
+                console.error('Error loading cart from localStorage:', e);
+            }
+        }
+    }, []);
+
+    // Save cart to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('hrms_cart', JSON.stringify(cart));
+    }, [cart]);
+
+    // Trigger cart bump animation when flying item reaches cart
+    useEffect(() => {
+        if (flyingItem) {
+            const timer = setTimeout(() => {
+                const cartBtn = document.getElementById('cart-icon-btn');
+                const badge = document.getElementById('cart-count-badge');
+                if (cartBtn) {
+                    cartBtn.classList.add('cart-bump');
+                    setTimeout(() => cartBtn.classList.remove('cart-bump'), 300);
+                }
+                if (badge) {
+                    badge.classList.add('badge-pulse');
+                    setTimeout(() => badge.classList.remove('badge-pulse'), 400);
+                }
+            }, 600); // Trigger when item reaches cart (before animation ends)
+            return () => clearTimeout(timer);
+        }
+    }, [flyingItem]);
 
     useEffect(() => {
         axios.get('/categories').then(res => setCategories(res.data.data));
@@ -65,7 +101,6 @@ export default function CustomerHome() {
             }
             return [...prev, { ...product, sell_price: price, cartId, qty, variantString, selectedVariants: variants, variant_id }];
         });
-        setCartOpen(true);
     };
 
     const updateQty = (cartId, delta) => {
@@ -85,8 +120,8 @@ export default function CustomerHome() {
             <header className="topbar" style={{ left: 0, padding: '0 5%' }}>
                 <div className="topbar__title" style={{ fontSize: '1.25rem' }}>HRMS <span>Store</span></div>
                 <div className="topbar__actions">
-                    <button className="btn btn--ghost" onClick={() => setCartOpen(true)}>
-                        🛒 {cart.length > 0 && <span className="badge badge--accent ml-2">{cart.reduce((s,i)=>s+i.qty,0)}</span>}
+                    <button id="cart-icon-btn" className="btn btn--ghost" onClick={() => navigate('/shop/cart')}>
+                        🛒 {cart.length > 0 && <span id="cart-count-badge" className="badge badge--accent ml-2">{cart.reduce((s,i)=>s+i.qty,0)}</span>}
                     </button>
                     {user ? (
                         <>
@@ -134,10 +169,28 @@ export default function CustomerHome() {
                                     <div className="product-card__footer" onClick={e => e.stopPropagation()}>
                                         <div className="product-card__price">₱{Number(p.sell_price).toFixed(2)}</div>
                                         <button 
+                                            id={`add-to-cart-${p.id}`}
                                             className={`btn btn--sm ${inStock ? 'btn-primary' : 'btn--ghost'}`}
                                             disabled={!inStock}
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                // Trigger fly animation
+                                                const productImg = e.currentTarget.closest('.product-card').querySelector('.product-card__img');
+                                                const cartBtn = document.getElementById('cart-icon-btn');
+                                                if (productImg && cartBtn) {
+                                                    const startRect = productImg.getBoundingClientRect();
+                                                    const endRect = cartBtn.getBoundingClientRect();
+                                                    setFlyingItem({
+                                                        id: p.id,
+                                                        img: p.image_path ? `/storage/${p.image_path}` : null,
+                                                        startX: startRect.left + startRect.width / 2,
+                                                        startY: startRect.top + startRect.height / 2,
+                                                        endX: endRect.left + endRect.width / 2,
+                                                        endY: endRect.top + endRect.height / 2,
+                                                    });
+                                                    setTimeout(() => setFlyingItem(null), 800);
+                                                }
+                                                
                                                 if (p.product_variants?.length > 0) {
                                                     const first = p.product_variants.find(v => (v.stock || 0) > 0);
                                                     if (first) {
@@ -173,62 +226,79 @@ export default function CustomerHome() {
                 />
             </main>
 
-            {/* Cart Sidebar */}
-            {cartOpen && <div className="modal-backdrop" onClick={() => setCartOpen(false)} style={{ zIndex: 399 }} />}
-            <div className={`cart-sidebar ${cartOpen ? 'open' : ''}`}>
-                <div className="cart-sidebar__header">
-                    <h3>Your Cart</h3>
-                    <button className="close-btn" onClick={() => setCartOpen(false)}>✕</button>
+            {/* Flying Item Animation */}
+            {flyingItem && (
+                <div
+                    style={{
+                        '--start-x': `${flyingItem.startX}px`,
+                        '--start-y': `${flyingItem.startY}px`,
+                        '--end-x': `${flyingItem.endX}px`,
+                        '--end-y': `${flyingItem.endY}px`,
+                        position: 'fixed',
+                        left: 0,
+                        top: 0,
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        background: '#fff',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        zIndex: 9999,
+                        pointerEvents: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.5rem',
+                        animation: 'flyToCart 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                    }}
+                >
+                    {flyingItem.img ? (
+                        <img 
+                            src={flyingItem.img} 
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                        />
+                    ) : (
+                        '📦'
+                    )}
                 </div>
-                
-                <div className="cart-sidebar__body">
-                    {cart.length === 0 ? (
-                        <div className="text-center text-muted mt-5">Your cart is empty</div>
-                    ) : cart.map(item => (
-                        <div key={item.cartId} className="cart-item">
-                            <div className="cart-item__info">
-                                <div className="cart-item__name">{item.name}</div>
-                                {item.variantString && (
-                                    <div className="cart-item__variant text-xs text-muted">[{item.variantString}]</div>
-                                )}
-                                <div className="cart-item__price">₱{Number(item.sell_price).toFixed(2)} / ea</div>
-                                {item.product_variants?.length > 0 && (
-                                    <button 
-                                        className="btn btn--link text-xs p-0 mt-1" 
-                                        style={{ color: 'var(--accent)', fontWeight: 600 }}
-                                        onClick={() => setSelectedProduct(item)}
-                                    >
-                                        Edit Details
-                                    </button>
-                                )}
-                            </div>
-                            <div className="cart-item__qty">
-                                <button onClick={() => updateQty(item.cartId, -1)}>-</button>
-                                <span>{item.qty}</span>
-                                <button onClick={() => updateQty(item.cartId, 1)}>+</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+            )}
 
-                {cart.length > 0 && (
-                    <div className="cart-sidebar__footer">
-                        <div className="total">
-                            <span>Total</span>
-                            <span className="text-accent text-xl">₱{cartTotal.toFixed(2)}</span>
-                        </div>
-                        <button 
-                            className="btn btn-primary w-full justify-center py-3 text-base"
-                            onClick={() => {
-                                localStorage.setItem('hrms_cart', JSON.stringify(cart));
-                                navigate('/shop/order');
-                            }}
-                        >
-                            Proceed to Checkout
-                        </button>
-                    </div>
-                )}
-            </div>
+            {/* CSS for fly animation */}
+            <style>{`
+                @keyframes flyToCart {
+                    0% {
+                        transform: translate(calc(var(--start-x) - 50%), calc(var(--start-y) - 50%)) scale(1);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: translate(calc((var(--start-x) + var(--end-x)) / 2 - 50%), calc((var(--start-y) + var(--end-y)) / 2 - 50%)) scale(0.8);
+                        opacity: 0.9;
+                    }
+                    100% {
+                        transform: translate(calc(var(--end-x) - 50%), calc(var(--end-y) - 50%)) scale(0.3);
+                        opacity: 0;
+                    }
+                }
+                
+                @keyframes cartBump {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.2); }
+                }
+                
+                .cart-bump {
+                    animation: cartBump 0.3s ease;
+                }
+                
+                @keyframes badgePulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.3); }
+                    100% { transform: scale(1); }
+                }
+                
+                .badge-pulse {
+                    animation: badgePulse 0.4s ease;
+                }
+            `}</style>
         </div>
     );
 }

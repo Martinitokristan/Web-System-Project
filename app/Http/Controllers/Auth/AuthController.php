@@ -7,50 +7,82 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        $request->validate([
+        $role = $request->get('role', 'customer');
+
+        $rules = [
             'name'         => 'required|string|max:100',
             'email'        => 'required|email|unique:users,email',
             'phone'        => 'required|string|max:20',
             'password'     => 'required|string|min:8|confirmed',
-            'age'          => 'nullable|integer|min:1|max:120',
-            'sex'          => 'nullable|in:male,female,other',
-            'province'     => 'required|string|max:100',
-            'municipality' => 'required|string|max:100',
-            'zip_code'     => 'required|string|max:10',
-            'address'      => 'required|string|max:255',
-            'landmark'     => 'nullable|string|max:100',
-            'latitude'     => 'nullable|numeric',
-            'longitude'    => 'nullable|numeric',
-        ]);
+        ];
 
-        $user = \DB::transaction(function () use ($request) {
+        if ($role === 'rider') {
+            $rules = array_merge($rules, [
+                'vehicle_type'   => 'required|string',
+                'plate_number'   => 'required|string',
+                'license_number' => 'required|string',
+                'address'        => 'required|string',
+                'valid_id_type'  => 'required|string',
+                'valid_id_file'  => 'required|file|image|max:5000',
+            ]);
+        } else {
+            $rules = array_merge($rules, [
+                'province'     => 'required|string|max:100',
+                'municipality' => 'required|string|max:100',
+                'zip_code'     => 'required|string|max:10',
+                'address'      => 'required|string|max:255',
+            ]);
+        }
+
+        $request->validate($rules);
+
+        $user = \DB::transaction(function () use ($request, $role) {
             $user = User::create([
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'phone'    => $request->phone,
-                'role'     => 'customer',
-                'status'   => 'active',
+                'role'     => $role,
+                'status'   => $role === 'rider' ? 'pending' : 'active',
                 'password' => Hash::make($request->password),
             ]);
 
-            \App\Models\CustomerProfile::create([
-                'user_id'      => $user->id,
-                'age'          => $request->age,
-                'sex'          => $request->sex,
-                'province'     => $request->province,
-                'municipality' => $request->municipality,
-                'zip_code'     => $request->zip_code,
-                'address'      => $request->address,
-                'landmark'     => $request->landmark,
-                'latitude'     => $request->latitude,
-                'longitude'    => $request->longitude,
-            ]);
+            if ($role === 'rider') {
+                $idPath = null;
+                if ($request->hasFile('valid_id_file')) {
+                    $idPath = $request->file('valid_id_file')->store('rider_ids', 'public');
+                }
+
+                \App\Models\RiderProfile::create([
+                    'user_id'        => $user->id,
+                    'vehicle_type'   => $request->vehicle_type,
+                    'plate_number'   => $request->plate_number,
+                    'license_number' => $request->license_number,
+                    'address'        => $request->address,
+                    'valid_id_type'  => $request->valid_id_type,
+                    'valid_id_path'  => $idPath,
+                    'availability'   => 'off_duty',
+                ]);
+            } else {
+                \App\Models\CustomerProfile::create([
+                    'user_id'      => $user->id,
+                    'age'          => $request->age,
+                    'sex'          => $request->sex,
+                    'province'     => $request->province,
+                    'municipality' => $request->municipality,
+                    'zip_code'     => $request->zip_code,
+                    'address'      => $request->address,
+                    'landmark'     => $request->landmark,
+                    'latitude'     => $request->latitude,
+                    'longitude'    => $request->longitude,
+                ]);
+            }
 
             return $user;
         });

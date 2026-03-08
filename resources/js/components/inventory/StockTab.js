@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useToast } from '../../context/ToastContext';
 import FilterBar from '../shared/FilterBar';
 import Pagination from '../shared/Pagination';
+import Modal from '../shared/Modal';
 
 export default function StockTab() {
     const { showToast } = useToast();
@@ -14,7 +15,7 @@ export default function StockTab() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
 
-    const [transferModal, setTransferModal] = useState({ show: false, item: null, qty: 1 });
+    const [transferModal, setTransferModal] = useState({ show: false, item: null, qty: '1' }); // Qty as string to handle inputs
     const [transferLoading, setTransferLoading] = useState(false);
 
     useEffect(() => {
@@ -48,7 +49,7 @@ export default function StockTab() {
         const qty = Number(transferModal.qty);
         const available = Number(transferModal.item.warehouse_stock);
 
-        if (!transferModal.item || qty < 1 || qty > available) {
+        if (!transferModal.item || isNaN(qty) || qty < 1 || qty > available) {
             showToast('Invalid transfer quantity', 'error');
             return;
         }
@@ -58,10 +59,10 @@ export default function StockTab() {
             await axios.post('/inventory/transfer', {
                 product_id: transferModal.item.product_id,
                 variant_id: transferModal.item.variant_id || null,
-                quantity: transferModal.qty,
+                quantity: qty,
             });
             showToast('Stock transferred to storefront successfully!');
-            setTransferModal({ show: false, item: null, qty: 1 });
+            setTransferModal({ show: false, item: null, qty: '1' });
             triggerRefresh();
         } catch (err) {
             showToast(err.response?.data?.message || 'Failed to transfer stock', 'error');
@@ -69,6 +70,8 @@ export default function StockTab() {
             setTransferLoading(false);
         }
     };
+
+    const formatNum = (num) => Number(num || 0).toLocaleString();
 
     return (
         <div>
@@ -117,10 +120,10 @@ export default function StockTab() {
                                         <div className="text-muted text-sm">{item.supplier}</div>
                                     </td>
                                     <td>{variantLabel || '-'}</td>
-                                    <td className="font-bold text-orange">{item.warehouse_stock}</td>
-                                    <td className="font-bold text-lg">{item.current_stock}</td>
+                                    <td className="font-bold text-orange">{formatNum(item.warehouse_stock)}</td>
+                                    <td className="font-bold text-lg">{formatNum(item.current_stock)}</td>
                                     <td className="text-muted">{item.unit}</td>
-                                    <td className="td-amount">{item.reorder_threshold}</td>
+                                    <td className="td-amount">{formatNum(item.reorder_threshold)}</td>
                                     <td>
                                         {isLow 
                                             ? <span className="badge badge--red">Low Stock</span> 
@@ -130,7 +133,7 @@ export default function StockTab() {
                                         {item.warehouse_stock > 0 && (
                                             <button 
                                                 className="btn btn--sm btn--primary"
-                                                onClick={() => setTransferModal({ show: true, item, qty: 1 })}
+                                                onClick={() => setTransferModal({ show: true, item, qty: '1' })}
                                             >
                                                 Transfer to Store
                                             </button>
@@ -145,56 +148,70 @@ export default function StockTab() {
 
             <Pagination page={page} total={inventory.total} perPage={15} onChange={setPage} />
 
-            {/* Transfer Modal */}
-            {transferModal.show && transferModal.item && (
-                <div className="modal-backdrop">
-                    <div className="modal-content" style={{ maxWidth: '400px' }}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Transfer to Storefront</h3>
-                            <button className="modal-close" onClick={() => setTransferModal({ show: false, item: null, qty: 1 })}>×</button>
+            <Modal 
+                isOpen={transferModal.show} 
+                onClose={() => setTransferModal({ show: false, item: null, qty: '1' })} 
+                title="Transfer to Storefront"
+                size="sm"
+            >
+                {transferModal.item && (
+                    <div className="po-create-form" style={{padding: 0}}>
+                        <p className="mb-4 text-sm leading-relaxed">
+                            Moving stock for <strong className="text-primary">{transferModal.item.name}</strong> 
+                            {transferModal.item.is_variant ? ` (${transferModal.item.size}/${transferModal.item.color})` : ''} 
+                            from Warehouse to Storefront.
+                        </p>
+                        
+                        <div className="bg-surface2 p-3 border-radius-lg mb-4">
+                            <label className="text-xs font-bold text-muted uppercase d-block mb-1">Available in Warehouse</label>
+                            <div className="text-xl font-bold">{formatNum(transferModal.item.warehouse_stock)} <small className="text-muted">{transferModal.item.unit}</small></div>
                         </div>
-                        <div className="modal-body">
-                            <p className="mb-3">
-                                Transfer stock for <strong>{transferModal.item.name}</strong> 
-                                {transferModal.item.is_variant ? ` (${transferModal.item.size}/${transferModal.item.color})` : ''} 
-                                from Warehouse to Storefront.
-                            </p>
-                            
-                            <div className="form-group mb-3">
-                                <label className="form-label">Available in Warehouse</label>
-                                <input type="number" className="form-control" value={transferModal.item.warehouse_stock} disabled />
-                            </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Quantity to Transfer</label>
-                                <input 
-                                    type="number" 
-                                    className="form-control" 
-                                    min="1" 
-                                    value={transferModal.qty}
-                                    onChange={(e) => setTransferModal({ ...transferModal, qty: Number(e.target.value) })}
-                                />
-                            </div>
+                        <div className="form-group mb-4">
+                            <label className="form-label">Quantity to Transfer</label>
+                            <input 
+                                type="number" 
+                                className="form-control form-control-lg w-full" 
+                                min="1" 
+                                max={transferModal.item.warehouse_stock}
+                                value={transferModal.qty}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    // Handle leading zeros and empty string
+                                    if (val === '') {
+                                        setTransferModal({ ...transferModal, qty: '' });
+                                    } else {
+                                        const num = parseInt(val);
+                                        setTransferModal({ ...transferModal, qty: isNaN(num) ? '1' : num.toString() });
+                                    }
+                                }}
+                                onBlur={() => {
+                                    if (transferModal.qty === '' || parseInt(transferModal.qty) < 1) {
+                                        setTransferModal({ ...transferModal, qty: '1' });
+                                    }
+                                }}
+                            />
                         </div>
-                        <div className="modal-footer d-flex justify-end gap-2">
+
+                        <div className="d-flex gap-2">
                             <button 
-                                className="btn btn--secondary" 
-                                onClick={() => setTransferModal({ show: false, item: null, qty: 1 })}
+                                className="btn btn--ghost flex-1" 
+                                onClick={() => setTransferModal({ show: false, item: null, qty: '1' })}
                                 disabled={transferLoading}
                             >
                                 Cancel
                             </button>
                             <button 
-                                className="btn btn-primary" 
+                                className="btn btn-primary flex-1" 
                                 onClick={handleTransfer}
-                                disabled={transferLoading}
+                                disabled={transferLoading || !transferModal.qty}
                             >
                                 {transferLoading ? 'Transferring...' : 'Confirm Transfer'}
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

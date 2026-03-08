@@ -12,11 +12,15 @@ class RiderController extends Controller
     public function index(Request $request)
     {
         $query = User::where('role', 'rider')
-            ->with('riderProfile')
-            ->withCount(['deliveries'])
+            ->with(['riderProfile'])
+            ->withCount(['deliveries as total_deliveries_count' => function($q) {
+                $q->where('status', 'delivered');
+            }])
+            ->withCount(['deliveries as active_deliveries_count' => function($q) {
+                $q->whereIn('status', ['pending', 'in_progress']);
+            }])
             ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
-            ->when($request->availability, fn($q) => $q->whereHas('riderProfile',
-                fn($rq) => $rq->where('availability', $request->availability)))
+            ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->latest();
 
         return response()->json([
@@ -158,5 +162,25 @@ class RiderController extends Controller
             ],
             'status' => 'success'
         ]);
+    }
+
+    public function scheduleInterview(Request $request, $id)
+    {
+        $request->validate(['interview_at' => 'required|date']);
+        $user = User::findOrFail($id);
+        $user->update(['status' => 'interview_set']);
+        $user->riderProfile()->update(['interview_at' => $request->interview_at]);
+
+        // TODO: Send email notification to the rider
+
+        return response()->json(['status' => 'success', 'message' => 'Interview scheduled successfully.']);
+    }
+
+    public function approveRider($id)
+    {
+        $user = User::findOrFail($id);
+        $user->update(['status' => 'active']);
+        
+        return response()->json(['status' => 'success', 'message' => 'Rider hired and activated!']);
     }
 }

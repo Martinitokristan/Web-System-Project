@@ -13,6 +13,7 @@ import AdminLayout from './components/layout/AdminLayout';
 // Auth
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import RiderRegister from './components/auth/RiderRegister';
 
 // Landing
 import Landing from './components/landing/Landing';
@@ -32,6 +33,7 @@ import Suppliers from './components/suppliers/Suppliers';
 // Customer Portal
 import CustomerHome from './components/customer-portal/CustomerHome';
 import CustomerOrder from './components/customer-portal/CustomerOrder';
+import CartPage from './components/customer-portal/CartPage';
 import OrderHistory from './components/customer-portal/OrderHistory';
 
 // Rider App
@@ -90,6 +92,7 @@ export default function AppRouter() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/rider/register" element={<RiderRegister />} />
 
             {/* Admin — wrapped in AdminLayout */}
             <Route element={
@@ -118,6 +121,7 @@ export default function AppRouter() {
                 </ProtectedRoute>
             }>
                 <Route path="/shop" element={<CustomerHome />} />
+                <Route path="/shop/cart" element={<CartPage />} />
                 <Route path="/shop/order" element={<CustomerOrder />} />
                 <Route path="/shop/history" element={<OrderHistory />} />
             </Route>
