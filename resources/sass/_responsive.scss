@@ -1,0 +1,523 @@
+// resources/sass/_responsive.scss — Ultra UI/UX: Mobile-first responsive + desktop support for ALL pages
+
+// ===== ENHANCED FONT STACK =====
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+// ===== IMPROVED GLOBAL SPACING =====
+* { box-sizing: border-box; }
+
+// ===== SIDEBAR MOBILE TOGGLE =====
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 150;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #fff;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  align-items: center;
+  justify-content: center;
+}
+
+// ===== MOBILE OVERLAY =====
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+
+// ===== ENHANCED STAT CARDS =====
+.stat-card {
+  &__value {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  &__label {
+    letter-spacing: 0.06em;
+  }
+}
+
+// ===== ENHANCED PAGE HEADERS =====
+.page-header {
+  .page-title {
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+}
+
+// ===== ENHANCED BUTTONS =====
+.btn {
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &-primary {
+    background: var(--accent);
+    color: #fff;
+    &:hover { background: #e85d2c; }
+  }
+}
+
+// ===== ENHANCED TABLES =====
+.data-table {
+  width: 100%;
+  font-size: 0.8125rem;
+
+  th {
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    color: var(--text2);
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+  }
+}
+
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+// ===== ENHANCED FILTER BAR =====
+.filter-bar {
+  border-radius: 14px;
+  padding: 0.875rem 1.25rem;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+
+  .search-wrap input {
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    padding: 0.6rem 0.875rem 0.6rem 2.25rem;
+  }
+
+  select {
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    padding: 0.6rem 0.875rem;
+  }
+}
+
+// ===== ENHANCED BADGES =====
+.badge {
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+}
+
+// ===== ENHANCED MODALS =====
+.modal-overlay .modal-box {
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+    h3 { font-weight: 800; letter-spacing: -0.02em; }
+  }
+
+  .modal-body {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+// ===== ENHANCED CARDS =====
+.stat-card, .card {
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+}
+
+// ===== ENHANCED FORMS =====
+.form-control {
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  padding: 0.6rem 0.875rem;
+  border: 1px solid var(--border);
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    outline: none;
+  }
+}
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+// ===== ENHANCED PILL TABS =====
+.pill-tabs {
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+
+  .pill-tab {
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 0.45rem 1.1rem;
+    letter-spacing: 0.01em;
+    transition: all 0.2s;
+
+    &.active {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+  }
+}
+
+// ===== TEXT UTILITY ADDITIONS =====
+.text-orange { color: var(--accent); }
+
+// ===== SKELETON ENHANCED =====
+.skeleton {
+  border-radius: 8px;
+}
+
+
+// ============================================================
+// RESPONSIVE BREAKPOINTS — MOBILE FIRST
+// ============================================================
+
+// --- Extra Small (Phones, < 480px) ---
+@media (max-width: 479px) {
+  .main-content {
+    padding: 1rem 0.75rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    .page-title { font-size: 1.15rem; }
+  }
+
+  .stat-card {
+    padding: 1rem;
+    &__value { font-size: 1.5rem; }
+    &__icon { display: none; }
+  }
+
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    padding: 0.75rem;
+    gap: 6px;
+
+    .search-wrap { min-width: 100%; }
+    select { width: 100%; min-width: 100%; }
+  }
+
+  .data-table {
+    font-size: 0.75rem;
+    th, td { padding: 0.5rem 0.65rem; }
+    th { font-size: 0.65rem; }
+  }
+
+  .btn {
+    font-size: 0.78rem;
+    padding: 0.45rem 1rem;
+    &--sm { padding: 0.3rem 0.7rem; font-size: 0.7rem; }
+  }
+
+  .pill-tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+
+    .pill-tab {
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      padding: 0.4rem 0.85rem;
+    }
+  }
+
+  .toast-container {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 1rem;
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: 100%;
+    font-size: 0.8rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .modal-overlay .modal-box {
+    width: 95vw;
+    max-height: 90vh;
+    border-radius: 14px;
+
+    .modal-header {
+      padding: 1rem 1.25rem;
+      h3 { font-size: 1rem; }
+    }
+    .modal-body { padding: 1rem 1.25rem; }
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+
+    &__buttons { justify-content: center; flex-wrap: wrap; }
+  }
+}
+
+// --- Small (Phones landscape, 480-639px) ---
+@media (min-width: 480px) and (max-width: 639px) {
+  .main-content { padding: 1.25rem 1rem; }
+  .page-title { font-size: 1.2rem; }
+
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+  }
+
+  .filter-bar {
+    flex-wrap: wrap;
+    .search-wrap { min-width: 100%; }
+  }
+}
+
+// --- Tablet (640-767px) ---
+@media (min-width: 640px) and (max-width: 767px) {
+  .main-content { padding: 1.5rem 1.25rem; }
+  .page-title { font-size: 1.25rem; }
+
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+// --- Mobile & Tablet (< 768px) — Sidebar hidden ---
+@media (max-width: 767px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+
+    &.open {
+      transform: translateX(0);
+      box-shadow: 8px 0 30px rgba(0,0,0,0.2);
+    }
+  }
+
+  .sidebar-toggle { display: flex; }
+  .sidebar.open ~ .sidebar-overlay { display: block; }
+
+  .topbar {
+    left: 0;
+    padding: 0 1rem;
+
+    &__title { font-size: 1rem; }
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  // Supplier portal responsive
+  .supplier-orders,
+  .supplier-dashboard {
+    .supplier-header {
+      .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+
+        h1 { font-size: 1.1rem; }
+
+        .header-actions {
+          width: 100%;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+      }
+    }
+  }
+
+  // Rider dashboard responsive
+  .rider-dashboard-v2 {
+    .rider-sidebar {
+      width: 100%;
+    }
+    .rider-map {
+      display: none;
+    }
+  }
+}
+
+// --- Desktop (768px - 1023px) ---
+@media (min-width: 768px) and (max-width: 1023px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(3, 1fr); }
+
+  .main-content { padding: 1.5rem; }
+
+  .stat-card {
+    padding: 1.25rem;
+    &__value { font-size: 1.65rem; }
+  }
+}
+
+// --- Large Desktop (1024px+) ---
+@media (min-width: 1024px) {
+  .main-content { padding: 1.75rem 2rem; }
+
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+  .stat-card {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  .page-title { font-size: 1.4rem; }
+
+  .filter-bar {
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+  }
+
+  .table-wrap {
+    border-radius: 14px;
+  }
+
+  .data-table {
+    th, td { padding: 0.85rem 1.1rem; }
+    th { font-size: 0.72rem; }
+    td { font-size: 0.8125rem; }
+  }
+}
+
+// --- Extra Large Desktop (1440px+) ---
+@media (min-width: 1440px) {
+  .main-content {
+    padding: 2rem 2.5rem;
+    max-width: 1600px;
+  }
+
+  .page-title { font-size: 1.5rem; }
+
+  .stat-card__value { font-size: 2rem; }
+}
+
+
+// ============================================================
+// TOPBAR HAMBURGER — hidden on desktop, shown on mobile
+// ============================================================
+.topbar__hamburger {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .topbar__hamburger {
+    display: flex !important;
+  }
+}
+
+// ============================================================
+// SUPPLIER SIDEBAR ACCENT COLOR
+// ============================================================
+.supplier-sidebar {
+  .sidebar__logo span span {
+    color: var(--accent);
+  }
+}
+
+// ============================================================
+// SUPPLIER DASHBOARD RESPONSIVE
+// ============================================================
+@media (max-width: 899px) {
+  // Supplier dashboard 2-col layout goes single col on small screens
+  div[style*="gridTemplateColumns: '1fr 340px'"],
+  div[style*="grid-template-columns: 1fr 340px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 639px) {
+  // Supplier product form 2-col layout goes single col
+  div[style*="gridTemplateColumns: '1fr 360px'"],
+  div[style*="grid-template-columns: 1fr 360px"] {
+    grid-template-columns: 1fr !important;
+  }
+  // Stats grid single col on very small
+  div[style*="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+// ============================================================
+// SCROLLBAR STYLING
+// ============================================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
+  &:hover { background: rgba(0,0,0,0.25); }
+}
+
+// ============================================================
+// PRINT STYLES
+// ============================================================
+@media print {
+  .sidebar, .topbar, .sidebar-toggle, .toast-container { display: none !important; }
+  .main-content { margin: 0 !important; padding: 1rem !important; }
+}

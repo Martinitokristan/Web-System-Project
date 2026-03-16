@@ -110,6 +110,30 @@ export default function RiderApp() {
         return () => clearInterval(interval);
     }, [refresh]);
 
+    // Proximity notification: send rider location for active in_progress jobs every 15s
+    useEffect(() => {
+        if (!hasGeo || myJobs.length === 0) return;
+        const activeJobs = myJobs.filter(j => j.status === 'in_progress');
+        if (activeJobs.length === 0) return;
+
+        const sendProximity = () => {
+            activeJobs.forEach(job => {
+                axios.post(`/deliveries/${job.id}/proximity`, {
+                    latitude: riderPos[0],
+                    longitude: riderPos[1],
+                }).then(res => {
+                    if (res.data.notified) {
+                        showToast(`Customer notified — you're ${Math.round(res.data.distance_km * 1000)}m away!`, 'success');
+                    }
+                }).catch(() => {});
+            });
+        };
+
+        sendProximity();
+        const interval = setInterval(sendProximity, 15000);
+        return () => clearInterval(interval);
+    }, [hasGeo, riderPos, myJobs]);
+
     const handleAction = async (id, status, actionNote) => {
         try {
             if (status === 'assigned') {

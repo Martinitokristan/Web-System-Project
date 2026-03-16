@@ -14,49 +14,98 @@ class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        // We query Products because we want to show variants if they exist
-        $query = Product::with(['category', 'unitType', 'supplier', 'inventory', 'productVariants.sizeValue', 'productVariants.colorValue', 'productVariants.weightValue'])
-            ->when($request->search, function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('sku', 'like', "%{$request->search}%");
-            });
+        // Query local storefront products
+        $pQuery = Product::with(['category', 'unitType', 'supplier', 'inventory', 'productVariants.sizeValue', 'productVariants.colorValue', 'productVariants.weightValue']);
+        
+        // Query warehouse-only items (not yet in storefront)
+        $wQuery = Inventory::with(['supplierProduct.category', 'supplierProduct.supplier'])
+            ->whereNull('product_id')
+            ->whereNotNull('supplier_product_id');
 
-        if ($request->filter === 'low') {
-            $query->where(function ($q) {
-                $q->whereHas('inventory', function ($iq) {
-                    $iq->whereRaw('current_stock <= reorder_threshold');
-                })->orWhereHas('productVariants', function ($vq) {
-                    $vq->where('stock', '<=', 10);
-                });
-            });
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $pQuery->where(fn($q) => $q->where('name', 'like', "%$s%")->orWhere('sku', 'like', "%$s%"));
+            $wQuery->whereHas('supplierProduct', fn($q) => $q->where('name', 'like', "%$s%")->orWhere('sku', 'like', "%$s%"));
         }
 
+        if ($request->filled('category_id')) {
+            $pQuery->where('category_id', $request->category_id);
+            $wQuery->whereHas('supplierProduct', fn($q) => $q->where('category_id', $request->category_id));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $pQuery->where('supplier_id', $request->supplier_id);
+            $wQuery->whereHas('supplierProduct', fn($q) => $q->where('supplier_id', $request->supplier_id));
+        }
+
+        // Note: For simplicity, pagination is done on Products first, then Orphans are appended or merged.
+        // In a high-volume system, we'd use a Union. But for now, let's fetch matching Orphans.
         $perPage = $request->get('per_page', 15);
-        $products = $query->paginate($perPage);
+        $products = $pQuery->paginate($perPage);
+        $orphans = $wQuery->get();
+
+        // Pre-load sold/imported quantities
+        $productIds = $products->pluck('id')->toArray();
+        $soldByProduct = \App\Models\SaleItem::whereIn('product_id', $productIds)
+            ->selectRaw('product_id, product_variant_id, SUM(quantity) as total_sold')
+            ->groupBy('product_id', 'product_variant_id')
+            ->get()
+            ->keyBy(fn($item) => $item->product_id . '-' . ($item->product_variant_id ?: '0'));
 
         $flattened = [];
+        
+        // Add Orphans first (labeled as Warehouse Only)
+        foreach ($orphans as $o) {
+            $sp = $o->supplierProduct;
+            $flattened[] = [
+                'id' => "o-{$o->id}",
+                'product_id' => null,
+                'variant_id' => null,
+                'supplier_product_id' => $o->supplier_product_id,
+                'sku' => $sp->sku ?? 'N/A',
+                'name' => $sp->name . ' (Warehouse Only)',
+                'supplier' => $sp->supplier ? $sp->supplier->name : '-',
+                'category' => $sp->category ? $sp->category->name : '-',
+                'unit' => 'Units', 
+                'current_stock' => 0,
+                'warehouse_stock' => $o->warehouse_stock,
+                'reorder_threshold' => $o->reorder_threshold,
+                'size' => '-',
+                'color' => '-',
+                'weight' => '-',
+                'is_variant' => false,
+                'is_orphan' => true,
+                'total_sold' => 0,
+                'total_imported' => $o->warehouse_stock, // For orphans, it's all "imported"
+            ];
+        }
+
         foreach ($products as $p) {
             if ($p->productVariants->count() > 0) {
                 foreach ($p->productVariants as $v) {
+                    $soldKey = $p->id . '-' . $v->id;
                     $flattened[] = [
-                        'id' => "v-{$v->id}", // Virtual ID for key
+                        'id' => "v-{$v->id}",
                         'product_id' => $p->id,
                         'variant_id' => $v->id,
                         'sku' => $p->sku . ($v->sku_suffix ? "-{$v->sku_suffix}" : ""),
                         'name' => $p->name,
                         'supplier' => $p->supplier ? $p->supplier->name : '-',
                         'category' => $p->category ? $p->category->name : '-',
-                        'unit' => $p->unitType ? $p->unitType->abbreviation : '-',
+                        'unit' => $p->unitType ? $p->unitType->sell_unit : '-',
                         'current_stock' => $v->stock,
-                        'warehouse_stock' => \App\Models\Inventory::where('product_id', $p->id)->where('product_variant_id', $v->id)->value('warehouse_stock') ?? 0,
+                        'warehouse_stock' => Inventory::where('product_id', $p->id)->where('product_variant_id', $v->id)->value('warehouse_stock') ?? 0,
                         'reorder_threshold' => ($p->inventory && $p->inventory->reorder_threshold) ? $p->inventory->reorder_threshold : 10,
                         'size' => ($v->sizeValue && $v->sizeValue->label) ? $v->sizeValue->label : '-',
                         'color' => ($v->colorValue && $v->colorValue->label) ? $v->colorValue->label : '-',
                         'weight' => ($v->weightValue && $v->weightValue->label) ? $v->weightValue->label : '-',
-                        'is_variant' => true
+                        'is_variant' => true,
+                        'total_sold' => isset($soldByProduct[$soldKey]) ? (int) $soldByProduct[$soldKey]->total_sold : 0,
+                        'total_imported' => 0, // Simplified
                     ];
                 }
             } else {
+                $soldKey = $p->id . '-0';
                 $flattened[] = [
                     'id' => "p-{$p->id}",
                     'product_id' => $p->id,
@@ -65,25 +114,34 @@ class InventoryController extends Controller
                     'name' => $p->name,
                     'supplier' => $p->supplier ? $p->supplier->name : '-',
                     'category' => $p->category ? $p->category->name : '-',
-                    'unit' => $p->unitType ? $p->unitType->abbreviation : '-',
+                    'unit' => $p->unitType ? $p->unitType->sell_unit : '-',
                     'current_stock' => $p->inventory ? $p->inventory->current_stock : 0,
                     'warehouse_stock' => $p->inventory ? $p->inventory->warehouse_stock : 0,
                     'reorder_threshold' => $p->inventory ? $p->inventory->reorder_threshold : 10,
                     'size' => '-',
                     'color' => '-',
                     'weight' => '-',
-                    'is_variant' => false
+                    'is_variant' => false,
+                    'total_sold' => isset($soldByProduct[$soldKey]) ? (int) $soldByProduct[$soldKey]->total_sold : 0,
+                    'total_imported' => 0,
                 ];
             }
         }
+
+        $variantMeta = [
+            'sizes'   => \App\Models\VariantValue::whereHas('variant', fn($q) => $q->where('name', 'Size'))->pluck('label')->unique()->values(),
+            'colors'  => \App\Models\VariantValue::whereHas('variant', fn($q) => $q->where('name', 'Color'))->pluck('label')->unique()->values(),
+            'weights' => \App\Models\VariantValue::whereHas('variant', fn($q) => $q->where('name', 'Weight'))->pluck('label')->unique()->values(),
+        ];
 
         $responseData = $products->toArray();
         $responseData['data'] = $flattened;
 
         return response()->json([
-            'data'     => $responseData,
+            'data'           => $responseData,
+            'variant_meta'   => $variantMeta,
             'low_stock_count' => Inventory::whereRaw('current_stock <= reorder_threshold')->count(),
-            'status'   => 'success',
+            'status'         => 'success',
         ]);
     }
 

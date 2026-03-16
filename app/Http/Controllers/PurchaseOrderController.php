@@ -7,6 +7,7 @@ use App\Models\POItem;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\SupplierProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,9 +15,13 @@ class PurchaseOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with(['supplier', 'creator', 'items.product'])
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->search, fn($q) => $q->where('po_number', 'like', "%{$request->search}%"))
+        $query = PurchaseOrder::with(['supplier', 'creator', 'items.product', 'items.supplierProduct'])
+            ->when($request->status, function($q) use ($request) {
+                return $q->where('status', $request->status);
+            })
+            ->when($request->search, function($q) use ($request) {
+                return $q->where('po_number', 'like', "%{$request->search}%");
+            })
             ->latest();
 
         return response()->json([
@@ -30,8 +35,10 @@ class PurchaseOrderController extends Controller
         $data = $request->validate([
             'supplier_id'                    => 'required|exists:suppliers,id',
             'items'                          => 'required|array|min:1',
-            'items.*.product_id'             => 'required|exists:products,id',
+            'items.*.product_id'             => 'nullable|exists:products,id',
             'items.*.product_variant_id'     => 'nullable|exists:product_variants,id',
+            'items.*.supplier_product_id'    => 'nullable|exists:supplier_products,id',
+            'items.*.supplier_product_variant_id' => 'nullable|exists:supplier_product_variants,id',
             'items.*.quantity'               => 'required|numeric|min:1',
             'items.*.unit_cost'              => 'required|numeric|min:0',
             'expected_date'                  => 'nullable|date',
@@ -53,12 +60,14 @@ class PurchaseOrderController extends Controller
                 $subtotal = $item['quantity'] * $item['unit_cost'];
                 $total += $subtotal;
                 POItem::create([
-                    'purchase_order_id'  => $po->id,
-                    'product_id'         => $item['product_id'],
-                    'product_variant_id' => $item['product_variant_id'] ?? null,
-                    'quantity'           => $item['quantity'],
-                    'unit_cost'          => $item['unit_cost'],
-                    'subtotal'           => $subtotal,
+                    'purchase_order_id'           => $po->id,
+                    'product_id'                  => $item['product_id'] ?? null,
+                    'product_variant_id'          => $item['product_variant_id'] ?? null,
+                    'supplier_product_id'         => $item['supplier_product_id'] ?? null,
+                    'supplier_product_variant_id' => $item['supplier_product_variant_id'] ?? null,
+                    'quantity'                    => $item['quantity'],
+                    'unit_cost'                   => $item['unit_cost'],
+                    'subtotal'                    => $subtotal,
                 ]);
             }
 
@@ -67,8 +76,8 @@ class PurchaseOrderController extends Controller
         });
 
         return response()->json([
-            'data'    => $po->load(['supplier', 'items.product', 'items.productVariant.sizeValue', 'items.productVariant.colorValue']),
-            'message' => 'Purchase order created',
+            'data'    => $po->load(['supplier', 'items.product', 'items.supplierProduct']),
+            'message' => 'Order request sent successfully',
             'status'  => 'success',
         ], 201);
     }
@@ -78,6 +87,7 @@ class PurchaseOrderController extends Controller
         $po = PurchaseOrder::with([
             'supplier', 'creator',
             'items.product',
+            'items.supplierProduct',
             'items.productVariant.sizeValue',
             'items.productVariant.colorValue',
             'items.productVariant.weightValue',
@@ -90,14 +100,31 @@ class PurchaseOrderController extends Controller
         $po = PurchaseOrder::findOrFail($id);
 
         if ($po->status !== 'pending') {
-            return response()->json(['message' => 'Only pending POs can be sent to supplier.', 'status' => 'error'], 422);
+            return response()->json(['message' => 'Only pending POs can be approved.', 'status' => 'error'], 422);
         }
 
         $po->update(['status' => 'pending_supplier']);
 
         return response()->json([
             'data'    => $po,
-            'message' => 'Purchase order sent to supplier for confirmation.',
+            'message' => 'Purchase order approved and sent to supplier.',
+            'status'  => 'success',
+        ]);
+    }
+
+    public function decline($id)
+    {
+        $po = PurchaseOrder::findOrFail($id);
+
+        if ($po->status !== 'pending') {
+            return response()->json(['message' => 'Only pending POs can be declined.', 'status' => 'error'], 422);
+        }
+
+        $po->update(['status' => 'cancelled']);
+
+        return response()->json([
+            'data'    => $po,
+            'message' => 'Purchase order has been declined.',
             'status'  => 'success',
         ]);
     }
@@ -159,39 +186,28 @@ class PurchaseOrderController extends Controller
 
         DB::transaction(function () use ($po) {
             foreach ($po->items as $item) {
-                if ($item->product_variant_id) {
-                    // Update warehouse stock for this specific variant
-                    $inv = Inventory::firstOrCreate(
-                        [
-                            'product_id'         => $item->product_id,
-                            'product_variant_id' => $item->product_variant_id,
-                        ],
-                        [
-                            'current_stock'     => 0,
-                            'warehouse_stock'   => 0,
-                            'reorder_threshold' => 10,
-                        ]
-                    );
-                    $inv->increment('warehouse_stock', $item->quantity);
-                    $inv->last_adjusted_at = now();
-                    $inv->save();
-                } else {
-                    // No variant — update base product inventory's warehouse stock
-                    $inv = Inventory::firstOrCreate(
-                        [
-                            'product_id'         => $item->product_id,
-                            'product_variant_id' => null,
-                        ],
-                        [
-                            'current_stock'     => 0,
-                            'warehouse_stock'   => 0,
-                            'reorder_threshold' => 10,
-                        ]
-                    );
-                    $inv->increment('warehouse_stock', $item->quantity);
-                    $inv->last_adjusted_at = now();
-                    $inv->save();
+                // Determine search criteria for existing inventory
+                $search = [
+                    'product_id'         => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                ];
+
+                if (!$item->product_id) {
+                    $search['supplier_product_id'] = $item->supplier_product_id;
                 }
+
+                $inv = Inventory::firstOrCreate(
+                    $search,
+                    [
+                        'current_stock'     => 0,
+                        'warehouse_stock'   => 0,
+                        'reorder_threshold' => 10,
+                    ]
+                );
+
+                $inv->increment('warehouse_stock', $item->quantity);
+                $inv->last_adjusted_at = now();
+                $inv->save();
             }
             $po->update(['status' => 'received']);
         });
@@ -209,25 +225,13 @@ class PurchaseOrderController extends Controller
         try {
             $supplier = $request->user();
             
-            \Log::info('SupplierIndex called', [
-                'user' => $supplier ? $supplier->toArray() : 'null',
-                'has_auth_header' => $request->hasHeader('Authorization'),
-                'bearer_token' => $request->bearerToken() ? 'present' : 'missing'
-            ]);
-
-            if (!$supplier) {
-                \Log::error('SupplierIndex: No supplier found in request');
-                return response()->json([
-                    'message' => 'Unauthorized. Supplier not found.',
-                    'status' => 'error'
-                ], 401);
-            }
-
             \Log::info('SupplierIndex: Building query', ['supplier_id' => $supplier->id]);
 
-            $query = PurchaseOrder::with(['supplier', 'creator', 'items.product'])
+            $query = PurchaseOrder::with(['supplier', 'creator', 'items.product', 'items.supplierProduct'])
                 ->where('supplier_id', $supplier->id)
-                ->when($request->status, fn($q) => $q->where('status', $request->status))
+                ->when($request->status, function($q) use ($request) {
+                    return $q->where('status', $request->status);
+                })
                 ->latest();
 
             \Log::info('SupplierIndex: Executing query');

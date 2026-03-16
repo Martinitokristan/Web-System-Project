@@ -9,11 +9,16 @@ class Delivery extends Model
     protected $fillable = [
         'sale_id', 'rider_id', 'status', 'address',
         'pickup_at', 'delivered_at', 'notes',
+        'tracking_number', 'latitude', 'longitude',
+        'rating', 'rating_comment', 'rated_at', 'proof_photo',
     ];
 
     protected $casts = [
         'pickup_at' => 'datetime',
         'delivered_at' => 'datetime',
+        'rated_at' => 'datetime',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function sale()

@@ -38,19 +38,25 @@ import OrderHistory from './components/customer-portal/OrderHistory';
 
 // Rider App
 import RiderApp from './components/rider/RiderApp';
+import RiderDashboardV3 from './components/rider/RiderDashboardV3';
 
 // Supplier Portal
-import SupplierLogin from './components/supplier/SupplierLogin';
 import SupplierRegister from './components/supplier/SupplierRegister';
 import SupplierDashboard from './components/supplier/SupplierDashboard';
 import SupplierOrders from './components/supplier/SupplierOrders';
+import SupplierProducts from './components/supplier/SupplierProducts';
+import SupplierSettings from './components/supplier/SupplierSettings';
+import SupplierLayout from './components/layout/SupplierLayout';
+
+// Admin: Supplier Catalog
+import SupplierCatalog from './components/suppliers/SupplierCatalog';
 
 function ProtectedRoute({ children, roles }) {
     const { user, loading } = useAuth();
     if (loading) return <div className="loading-page"><div className="spinner" /></div>;
     
-    // Intended role path
-    const loginPath = roles?.includes('rider') ? '/login?role=rider' : '/login';
+    // Always redirect to the unified login page regardless of role
+    const loginPath = '/login';
 
     if (!user) return <Navigate to={loginPath} replace />;
     if (roles && !roles.includes(user.role)) {
@@ -81,7 +87,7 @@ function SupplierProtectedRoute({ children }) {
     }, []);
 
     if (loading) return <div className="loading-page"><div className="spinner" /></div>;
-    if (!authenticated) return <Navigate to="/supplier/login" replace />;
+    if (!authenticated) return <Navigate to="/login?role=supplier" replace />;
     return children;
 }
 
@@ -112,6 +118,7 @@ export default function AppRouter() {
                 <Route path="/users/customers" element={<Customers />} />
                 <Route path="/users/riders" element={<Riders />} />
                 <Route path="/suppliers" element={<Suppliers />} />
+                <Route path="/supplier-catalog" element={<SupplierCatalog />} />
             </Route>
 
             {/* Customer Portal */}
@@ -129,23 +136,22 @@ export default function AppRouter() {
             {/* Rider App */}
             <Route path="/rider" element={
                 <ProtectedRoute roles={['rider']}>
-                    <RiderApp />
+                    <RiderDashboardV3 />
                 </ProtectedRoute>
             } />
 
             {/* Supplier Portal */}
-            <Route path="/supplier/login" element={<SupplierLogin />} />
             <Route path="/supplier/register" element={<SupplierRegister />} />
-            <Route path="/supplier/dashboard" element={
+            <Route element={
                 <SupplierProtectedRoute>
-                    <SupplierDashboard />
+                    <SupplierLayout />
                 </SupplierProtectedRoute>
-            } />
-            <Route path="/supplier/orders" element={
-                <SupplierProtectedRoute>
-                    <SupplierOrders />
-                </SupplierProtectedRoute>
-            } />
+            }>
+                <Route path="/supplier/dashboard" element={<SupplierDashboard />} />
+                <Route path="/supplier/products" element={<SupplierProducts />} />
+                <Route path="/supplier/orders" element={<SupplierOrders />} />
+                <Route path="/supplier/settings" element={<SupplierSettings />} />
+            </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

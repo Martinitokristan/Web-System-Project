@@ -19,6 +19,9 @@
 @import 'delivery';
 @import 'reports';
 @import 'settings';
+@import 'product-form';
+@import 'shop';
+@import 'responsive';
 
 body {
   font-family: 'DM Sans', sans-serif;
@@ -40,6 +43,7 @@ body {
 .justify-between { justify-content: space-between; }
 .flex-wrap { flex-wrap: wrap; }
 .w-full { width: 100%; }
+.justify-center { justify-content: center; }
 
 // Loading spinner
 .spinner {

@@ -391,3 +391,159 @@
     color: var(--text3);
     letter-spacing: 0.05em;
 }
+
+// Toggle Switch for Notification Settings
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s;
+
+    &:hover {
+        border-color: var(--accent);
+        background: #fff;
+    }
+
+    .toggle-info {
+        flex: 1;
+        margin-right: 1rem;
+
+        .label {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 0.2rem;
+        }
+
+        .desc {
+            font-size: 0.8rem;
+            color: var(--text3);
+        }
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 26px;
+        flex-shrink: 0;
+
+        input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e1;
+            border-radius: 26px;
+            transition: 0.3s;
+
+            &::before {
+                content: '';
+                position: absolute;
+                height: 20px;
+                width: 20px;
+                left: 3px;
+                bottom: 3px;
+                background: #fff;
+                border-radius: 50%;
+                transition: 0.3s;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            }
+        }
+
+        input:checked + .slider {
+            background: var(--accent);
+        }
+
+        input:checked + .slider::before {
+            transform: translateX(22px);
+        }
+    }
+}
+
+// Profile Dropdown Enhancements
+.profile-dropdown {
+    .profile-dropdown__item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: background 0.15s;
+
+        &:hover {
+            background: #f8fafc;
+        }
+
+        &.danger {
+            color: #ef4444;
+            &:hover { background: #fef2f2; }
+        }
+    }
+}
+
+// Settings page responsive
+@media (max-width: 767px) {
+    .settings-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .settings-sidebar {
+        width: 100%;
+
+        .sidebar-nav {
+            flex-direction: row;
+            overflow-x: auto;
+            gap: 0.25rem;
+            padding-bottom: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+
+            &::-webkit-scrollbar { display: none; }
+        }
+
+        .nav-item {
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        .sidebar-section-title {
+            display: none;
+        }
+    }
+
+    .settings-content {
+        padding: 1.25rem;
+        border-radius: 14px;
+
+        .content-header h2 { font-size: 1.3rem; }
+        .form-grid { grid-template-columns: 1fr; }
+        .form-group-full { grid-column: span 1; }
+        .variant-cards-grid { grid-template-columns: 1fr; }
+        .weight-class-grid { grid-template-columns: repeat(2, 1fr); }
+
+        .logo-upload-section {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+    }
+}

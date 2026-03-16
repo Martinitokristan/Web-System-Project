@@ -26,6 +26,20 @@
   &--md  { max-width: 580px; }
   &--lg  { max-width: 760px; }
   &--xl  { max-width: 960px; }
+  &--fullscreen {
+    max-width: none;
+    width: calc(100vw - 2rem);
+    height: calc(100vh - 2rem);
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+
+    .modal__body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+  }
 
   &__header {
     @include flex-between;

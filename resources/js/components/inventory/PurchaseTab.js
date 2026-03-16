@@ -19,17 +19,6 @@ export default function PurchaseTab() {
     const [viewPo, setViewPo] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
 
-    // Create PO Modal State
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [suppliers, setSuppliers] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [createLoading, setCreateLoading] = useState(false);
-    const [productsLoading, setProductsLoading] = useState(false);
-    const [poForm, setPoForm] = useState({
-        supplier_id: '',
-        items: []
-    });
-
     useEffect(() => {
         let isMounted = true;
         const fetchPos = () => {
@@ -56,76 +45,12 @@ export default function PurchaseTab() {
         };
     }, [page, search, statusFilter, refreshTrigger]);
 
-    // Fetch suppliers and products when create modal opens
-    useEffect(() => {
-        let isMounted = true;
-        if (showCreateModal) {
-            const fetchData = async () => {
-                setProductsLoading(true);
-                try {
-                    console.log('Fetching suppliers and products for PO creation...');
-                    const [suppliersRes, productsRes] = await Promise.all([
-                        axios.get('/suppliers', { params: { no_pagination: 1 } }),
-                        axios.get('/products')
-                    ]);
-                    
-                    console.log('Suppliers API response:', suppliersRes.data);
-                    console.log('Products API response:', productsRes.data);
-                    
-                    if (isMounted) {
-                        // Handle suppliers data - could be direct array or nested in .data
-                        let suppliersData = suppliersRes.data.data || suppliersRes.data || [];
-                        if (!Array.isArray(suppliersData)) {
-                            suppliersData = [];
-                        }
-                        
-                        // Handle products data - products API returns paginated structure
-                        // productsRes.data = { data: { data: [...], meta: {...} }, status: 'success' }
-                        let productsData = [];
-                        const productsResponse = productsRes.data;
-                        
-                        if (productsResponse.data && Array.isArray(productsResponse.data)) {
-                            // Direct array: productsRes.data.data = [...]
-                            productsData = productsResponse.data;
-                        } else if (productsResponse.data && productsResponse.data.data && Array.isArray(productsResponse.data.data)) {
-                            // Nested array: productsRes.data.data.data = [...]
-                            productsData = productsResponse.data.data;
-                        } else if (Array.isArray(productsResponse)) {
-                            // Direct response: productsRes.data = [...]
-                            productsData = productsResponse;
-                        }
-                        
-                        console.log('Extracted suppliers:', suppliersData);
-                        console.log('Extracted products:', productsData);
-                        console.log('Is suppliers array?', Array.isArray(suppliersData));
-                        console.log('Is products array?', Array.isArray(productsData));
-                        
-                        setSuppliers(suppliersData);
-                        setProducts(productsData);
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch data for PO creation:', err);
-                    console.error('Error details:', err.response?.data || err.message);
-                    if (isMounted) {
-                        showToast('Failed to load suppliers or products', 'error');
-                    }
-                } finally {
-                    if (isMounted) {
-                        setProductsLoading(false);
-                    }
-                }
-            };
-            fetchData();
-        }
-        return () => { 
-            isMounted = false;
-            setProductsLoading(false);
-        };
-    }, [showCreateModal]);
 
     const handleAction = async (poId, action) => {
         const confirmMsg = action === 'approve' 
-            ? 'Approve this PO?' 
+            ? 'Approve and send this PO to the supplier?' 
+            : action === 'decline'
+            ? 'Are you sure you want to decline/cancel this PO?'
             : 'Mark as received? This will automatically increase your inventory stock for all items in this PO.';
         
         if (!confirm(confirmMsg)) return;
@@ -143,106 +68,6 @@ export default function PurchaseTab() {
         }
     };
 
-    // Create PO Item Management Functions
-    const addItem = () => {
-        setPoForm({
-            ...poForm,
-            items: [...poForm.items, {
-                product_id: '',
-                product_variant_id: '', // Added variant selection
-                quantity: 1,
-                unit_cost: 0
-            }]
-        });
-    };
-
-    const updateItem = (index, field, value) => {
-        const updatedItems = [...poForm.items];
-        updatedItems[index][field] = value;
-        
-        // If product changes, reset variant
-        if (field === 'product_id') {
-            updatedItems[index]['product_variant_id'] = '';
-        }
-        
-        setPoForm({ ...poForm, items: updatedItems });
-    };
-
-    const removeItem = (index) => {
-        setPoForm({
-            ...poForm,
-            items: poForm.items.filter((_, i) => i !== index)
-        });
-    };
-
-    const calculateTotal = () => {
-        return poForm.items.reduce((sum, item) => {
-            return sum + (Number(item.quantity) * Number(item.unit_cost));
-        }, 0);
-    };
-
-    const submitPO = async () => {
-        // Validation
-        if (!poForm.supplier_id) {
-            showToast('Please select a supplier', 'error');
-            return;
-        }
-        if (poForm.items.length === 0) {
-            showToast('Please add at least one item', 'error');
-            return;
-        }
-        const invalidItems = poForm.items.filter(item =>
-            !item.product_id || item.quantity <= 0 || item.unit_cost <= 0
-        );
-        if (invalidItems.length > 0) {
-            showToast('All items must have a product, quantity > 0, and cost > 0', 'error');
-            return;
-        }
-
-        setCreateLoading(true);
-        try {
-            await axios.post('/purchase-orders', {
-                supplier_id: poForm.supplier_id,
-                items: poForm.items.map(item => ({
-                    product_id: item.product_id,
-                    product_variant_id: item.product_variant_id || null, // Send variant
-                    quantity: Number(item.quantity),
-                    unit_cost: Number(item.unit_cost)
-                }))
-            });
-            showToast('Purchase Order created successfully!');
-            setShowCreateModal(false);
-            setPoForm({ supplier_id: '', items: [] });
-            triggerRefresh();
-        } catch (error) {
-            showToast(error.response?.data?.message || 'Failed to create Purchase Order', 'error');
-        } finally {
-            setCreateLoading(false);
-        }
-    };
-
-    const resetCreateForm = () => {
-        setPoForm({ supplier_id: '', items: [] });
-        setShowCreateModal(false);
-    };
-
-    // Debug function to test dropdown
-    const debugDropdown = () => {
-        console.log('=== PO Form Debug Info ===');
-        console.log('showCreateModal:', showCreateModal);
-        console.log('productsLoading:', productsLoading);
-        console.log('suppliers:', suppliers);
-        console.log('products:', products);
-        console.log('poForm:', poForm);
-        console.log('========================');
-    };
-
-    // Call debug function when modal opens
-    useEffect(() => {
-        if (showCreateModal) {
-            setTimeout(debugDropdown, 1000); // Debug after 1 second
-        }
-    }, [showCreateModal, products, suppliers]);
 
     return (
         <div>
@@ -254,19 +79,17 @@ export default function PurchaseTab() {
                             value: statusFilter, onChange: v => { setStatusFilter(v); setPage(1); },
                             options: [
                                 { value: '',                   label: 'All Statuses' },
-                                { value: 'pending',            label: 'Pending (Draft)' },
-                                { value: 'pending_supplier',   label: 'Sent to Supplier' },
-                                { value: 'accepted',           label: 'Accepted by Supplier' },
-                                { value: 'rejected',           label: 'Rejected by Supplier' },
-                                { value: 'supplier_delivered', label: 'Delivered by Supplier' },
-                                { value: 'received',           label: 'Received (Stock Added)' },
+                                { value: 'pending',            label: 'Pending' },
+                                { value: 'pending_supplier',   label: 'Approved / Sent' },
+                                { value: 'accepted',           label: 'Accepted' },
+                                { value: 'rejected',           label: 'Rejected' },
+                                { value: 'supplier_delivered', label: 'Delivered' },
+                                { value: 'received',           label: 'Received' },
+                                { value: 'cancelled',          label: 'Declined' },
                             ]
                         }
                     ]}
                 />
-                <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-                    Create Purchase Order
-                </button>
             </div>
 
             <div className="table-wrap">
@@ -309,285 +132,234 @@ export default function PurchaseTab() {
 
             <Pagination page={page} total={pos.total} perPage={15} onChange={setPage} />
 
-            <Modal isOpen={!!viewPo} onClose={() => setViewPo(null)} title={`Purchase Order ${viewPo?.po_number}`} size="md">
+            <style>{`
+                .premium-modal {
+                    font-family: 'Inter', system-ui, sans-serif;
+                }
+                .po-card-main {
+                    background: #fff;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+                    overflow: hidden;
+                }
+                .po-header-section {
+                    background: #f8fafc;
+                    padding: 24px;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                .po-body-section {
+                    padding: 24px;
+                }
+                .po-footer-section {
+                    background: #f8fafc;
+                    padding: 20px 24px;
+                    border-top: 1px solid #e2e8f0;
+                }
+                .btn--system-orange {
+                    background: #FF6B35 !important;
+                    color: white !important;
+                    border: none;
+                    font-weight: 700;
+                    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+                }
+                .btn--system-orange:hover {
+                    background: #fa5a1e !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.35);
+                }
+                .btn--white-decline {
+                    background: #fff !important;
+                    color: #dc2626 !important;
+                    border: 1px solid #fecaca !important;
+                    font-weight: 600;
+                }
+                .btn--white-decline:hover {
+                    background: #fff5f5 !important;
+                    border-color: #ef4444 !important;
+                }
+                .info-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 20px;
+                }
+                .system-orange-text { color: #FF6B35 !important; }
+            `}</style>
+
+            <Modal 
+                isOpen={!!viewPo} 
+                onClose={() => setViewPo(null)} 
+                title={`Purchase Order Analysis - ${viewPo?.po_number}`} 
+                size="xl"
+            >
                 {viewPo && (
-                    <div>
-                        {console.log('DEBUG: Modal opened, viewPo:', viewPo)}
-                        {console.log('DEBUG: viewPo.status:', viewPo.status, 'type:', typeof viewPo.status)}
-                        <div className="d-flex justify-between mb-3 p-3 bg-surface2 rounded" style={{borderRadius: 8}}>
-                            <div>
-                                <div className="text-sm text-muted">Supplier</div>
-                                <div className="font-semi">{viewPo.supplier?.name}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm text-muted">Status</div>
-                                <StatusBadge status={viewPo.status} />
-                            </div>
-                        </div>
+                    <div className="premium-modal">
+                        <div className="po-card-main">
+                            {/* Unified Header */}
+                            <div className="po-header-section">
+                                <div className="d-flex justify-between align-center">
+                                    <div className="d-flex gap-3 align-center">
+                                        <div className="p-3 bg-white rounded-circle shadow-sm border border-light">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Logistics Partner</div>
+                                            <div className="font-bold text-xl text-dark" style={{letterSpacing: '-0.02em'}}>{viewPo.supplier?.name}</div>
+                                            <div className="text-sm font-semi system-orange-text">{viewPo.supplier?.email}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs text-muted font-bold uppercase tracking-widest mb-1">Current Status</div>
+                                        <StatusBadge status={viewPo.status} />
+                                    </div>
+                                </div>
 
-                        <h4 className="section-title mb-2">Requested Items</h4>
-                        <div className="table-wrap mb-4">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th>Qty</th>
-                                        <th>Unit Cost</th>
-                                        <th>Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {viewPo.items?.map(i => {
-                                        const variant = i.product_variant;
-                                        const variantLabel = variant 
-                                            ? `(${variant.size_value?.label || ''} ${variant.color_value?.label || ''})`.trim()
-                                            : '';
-                                        return (
-                                            <tr key={i.id}>
-                                                <td>
-                                                    {i.product?.name} 
-                                                    {variantLabel && <span className="ml-1 text-sm font-semi text-primary">{variantLabel}</span>}
-                                                    <span className="text-sm text-muted ml-1">({i.product?.sku})</span>
-                                                </td>
-                                                <td className="font-bold">{i.quantity}</td>
-                                                <td>₱{Number(i.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td className="font-semi">₱{Number(i.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <div className="info-grid mt-4 pt-4 border-top">
+                                    <div>
+                                        <div className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Authorizing Agent</div>
+                                        <div className="font-bold text-dark">{viewPo.creator?.name || 'System'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Creation Date</div>
+                                        <div className="font-semi text-dark">{new Date(viewPo.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                                    </div>
+                                    {viewPo.expected_date && (
+                                        <div>
+                                            <div className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Target Fulfillment</div>
+                                            <div className="font-bold system-orange-text">{new Date(viewPo.expected_date).toLocaleDateString()}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Main Body (Single Table) */}
+                            <div className="po-body-section">
+                                <div className="d-flex justify-between align-center mb-3">
+                                    <h3 className="m-0 font-bold text-dark" style={{fontSize: '1rem'}}>Itemized Purchase Inventory</h3>
+                                    <span className="text-xs font-bold px-2 py-1 bg-light border rounded text-muted uppercase">{viewPo.items?.length || 0} Line Items</span>
+                                </div>
+                                <div className="table-responsive border rounded overflow-hidden">
+                                    <table className="table mb-0">
+                                        <thead className="bg-light text-muted" style={{fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                                            <tr>
+                                                <th className="px-4 py-3 border-0">Product / SKU</th>
+                                                <th className="px-4 py-3 border-0 text-center">Qty</th>
+                                                <th className="px-4 py-3 border-0 text-right">Unit rate</th>
+                                                <th className="px-4 py-3 border-0 text-right">Total Amount</th>
                                             </tr>
-                                        );
-                                    })}
-                                    <tr>
-                                        <td colSpan="3" className="text-right font-semi">Total PO Cost:</td>
-                                        <td className="font-bold text-lg text-red">₱{Number(viewPo.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Rejection Reason — shown prominently at top if rejected */}
-                        {viewPo.status === 'rejected' && viewPo.rejection_reason && (
-                            <div className="mb-3 p-3 rounded" style={{borderRadius: 8, background: '#fef2f2', borderLeft: '4px solid #ef4444'}}>
-                                <div className="font-semi mb-1" style={{color:'#ef4444'}}>⚠ Supplier Rejected this PO</div>
-                                <div className="text-sm text-muted mb-1">Reason from supplier:</div>
-                                <div className="text-sm" style={{whiteSpace: 'pre-wrap'}}>{viewPo.rejection_reason}</div>
-                            </div>
-                        )}
-
-                        <div className="d-flex gap-2">
-                            {viewPo.status === 'pending' && (
-                                <button className="btn btn-primary flex-1 justify-center" disabled={actionLoading} onClick={() => handleAction(viewPo.id, 'approve')}>
-                                    ✉ Send to Supplier
-                                </button>
-                            )}
-                            {viewPo.status === 'pending_supplier' && (
-                                <div className="text-center text-muted flex-1">
-                                    <p>⏳ Waiting for supplier to accept or reject...</p>
+                                        </thead>
+                                        <tbody>
+                                            {viewPo.items?.map(i => {
+                                                const productName = i.product?.name || i.supplier_product?.name || 'Loading Name...';
+                                                const sku = i.product?.sku || i.supplier_product?.sku || 'N/A';
+                                                
+                                                return (
+                                                    <tr key={i.id}>
+                                                        <td className="px-4 py-4 border-top">
+                                                            <div className="font-bold text-dark mb-1">{productName}</div>
+                                                            <div className="text-xs bg-light text-muted d-inline-block px-1 rounded font-mono">SKU: {sku}</div>
+                                                            {i.product_variant && (
+                                                                <div className="text-xs system-orange-text font-bold mt-1">
+                                                                    ({[i.product_variant.size_value?.label, i.product_variant.color_value?.label].filter(Boolean).join(' ')})
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-4 border-top text-center font-bold text-lg">{i.quantity}</td>
+                                                        <td className="px-4 py-4 border-top text-right text-muted font-semi">
+                                                            ₱{Number(i.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                        <td className="px-4 py-4 border-top text-right font-bold text-dark">
+                                                            ₱{Number(i.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                        <tfoot className="bg-light border-top">
+                                            <tr>
+                                                <td colSpan="3" className="px-4 py-4 text-right font-bold text-muted border-0">Purchase Order Value:</td>
+                                                <td className="px-4 py-4 text-right font-bold text-2xl system-orange-text border-0">
+                                                    ₱{Number(viewPo.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
-                            )}
-                            {viewPo.status === 'accepted' && (
-                                <div className="text-center flex-1" style={{color:'#16a34a'}}>
-                                    <p>✔ Supplier accepted — awaiting delivery.</p>
-                                </div>
-                            )}
-                            {viewPo.status === 'rejected' && (
-                                <div className="text-center text-muted flex-1">
-                                    <p>You may create a new PO to reorder from another supplier.</p>
-                                </div>
-                            )}
-                            {viewPo.status === 'supplier_delivered' && (
-                                <button className="btn btn--green flex-1 justify-center" disabled={actionLoading} onClick={() => handleAction(viewPo.id, 'receive')}>
-                                    Mark as Received (Add to Stock)
-                                </button>
-                            )}
-                        </div>
 
-                        {/* Delivery Info */}
-                        {viewPo.status === 'supplier_delivered' && viewPo.delivered_at && (
-                            <div className="mt-3 p-3 bg-surface2 rounded" style={{borderRadius: 8, borderLeft: '4px solid #f97316'}}>
-                                <div className="text-sm text-muted mb-1">Delivery Information</div>
-                                <div className="font-semi">Delivered: {new Date(viewPo.delivered_at).toLocaleString()}</div>
-                                {viewPo.delivery_notes && (
-                                    <div className="text-sm mt-2"><strong>Notes:</strong> {viewPo.delivery_notes}</div>
+                                {/* Exception Messaging */}
+                                {viewPo.status === 'rejected' && viewPo.rejection_reason && (
+                                    <div className="mt-4 p-4 rounded bg-red-white border border-red-100 d-flex gap-3 align-center">
+                                        <svg width="24" height="24" fill="none" stroke="#dc2626" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                        <div>
+                                            <div className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">Supplier Rejection Logic</div>
+                                            <div className="text-sm text-dark">{viewPo.rejection_reason}</div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                        )}
+
+                            {/* Unified Footer Actions */}
+                            <div className="po-footer-section">
+                                <div className="d-flex justify-between align-center">
+                                    <div className="text-xs font-bold text-muted uppercase font-mono">System Integrity Verified</div>
+                                    <div className="d-flex gap-2">
+                                        {viewPo.status === 'pending' && (
+                                            <>
+                                                <button 
+                                                    className="btn btn--system-orange py-2 px-5 rounded shadow-sm"
+                                                    disabled={actionLoading} 
+                                                    onClick={() => handleAction(viewPo.id, 'approve')}
+                                                >
+                                                    Authorize PO
+                                                </button>
+                                                <button 
+                                                    className="btn btn--white-decline py-2 px-5 rounded"
+                                                    disabled={actionLoading} 
+                                                    onClick={() => handleAction(viewPo.id, 'decline')}
+                                                >
+                                                    Decline Request
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {viewPo.status === 'supplier_delivered' && (
+                                            <button 
+                                                className="btn btn--system-orange py-2 px-5 rounded"
+                                                disabled={actionLoading} 
+                                                onClick={() => handleAction(viewPo.id, 'receive')}
+                                            >
+                                                Confirm & Add to Stock
+                                            </button>
+                                        )}
+
+                                        {['pending_supplier', 'accepted'].includes(viewPo.status) && (
+                                            <div className="d-flex align-center gap-2 px-4 py-2 bg-white border rounded font-bold text-muted text-xs uppercase tracking-tighter shadow-sm">
+                                                <div className="spinner-border spinner-border-sm system-orange-text"></div>
+                                                Awaiting Fulfillment
+                                            </div>
+                                        )}
+
+                                        {viewPo.status === 'received' && (
+                                            <div className="px-4 py-2 bg-green-light border border-green-200 rounded text-green-700 font-bold text-xs uppercase d-flex align-center gap-2">
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                Inventory Synchronized
+                                            </div>
+                                        )}
+
+                                        {viewPo.status === 'cancelled' && (
+                                            <div className="px-4 py-2 bg-red-white border border-red-200 rounded text-red-600 font-bold text-xs uppercase d-flex align-center gap-2">
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                Request Voided
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </Modal>
 
-            {/* Create PO Modal */}
-            <Modal isOpen={showCreateModal} onClose={resetCreateForm} title="Create Purchase Order" size="lg">
-                <div className="po-create-form">
-                    {/* Supplier Selection */}
-                    <div className="form-group mb-3">
-                        <label className="form-label">Supplier *</label>
-                        <select 
-                            className="form-control"
-                            value={poForm.supplier_id}
-                            onChange={(e) => setPoForm({...poForm, supplier_id: e.target.value})}
-                            disabled={productsLoading}
-                        >
-                            <option value="">
-                                {productsLoading ? 'Loading suppliers...' : 'Select a supplier...'}
-                            </option>
-                            {!productsLoading && suppliers.length === 0 && (
-                                <option value="">No suppliers available</option>
-                            )}
-                            {!productsLoading && suppliers.map(supplier => (
-                                <option key={supplier.id} value={supplier.id}>
-                                    {supplier.name}
-                                </option>
-                            ))}
-                        </select>
-                        {productsLoading && (
-                            <div className="text-xs text-muted mt-1">Loading suppliers...</div>
-                        )}
-                        {!productsLoading && suppliers.length === 0 && (
-                            <div className="text-xs text-danger mt-1">No suppliers found. Please add suppliers first.</div>
-                        )}
-                    </div>
-
-                    {/* Items Section */}
-                    <div className="po-items-section mb-3">
-                        <div className="d-flex justify-between align-center mb-2">
-                            <h4 className="section-title">Order Items</h4>
-                            <button 
-                                type="button"
-                                className="btn btn--sm btn--secondary"
-                                onClick={addItem}
-                            >
-                                + Add Item
-                            </button>
-                        </div>
-
-                        {poForm.items.length === 0 && (
-                            <div className="text-center py-3 text-muted">
-                                No items added. Click "Add Item" to add products.
-                            </div>
-                        )}
-
-                        {poForm.items.map((item, index) => (
-                            <div key={index} className="po-item-row">
-                                <div className="po-item-product">
-                                    <select
-                                        className="form-control"
-                                        value={item.product_id}
-                                        onChange={(e) => updateItem(index, 'product_id', e.target.value)}
-                                        disabled={productsLoading}
-                                    >
-                                        <option value="">
-                                            {productsLoading ? 'Loading products...' : 'Select product...'}
-                                        </option>
-                                        {!productsLoading && products.length === 0 && (
-                                            <option value="">No products available</option>
-                                        )}
-                                        {!productsLoading && products.map(product => (
-                                            <option key={product.id} value={product.id}>
-                                                {product.name} ({product.sku})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {productsLoading && (
-                                        <div className="text-xs text-muted mt-1">Loading products...</div>
-                                    )}
-                                    {!productsLoading && products.length === 0 && (
-                                        <div className="text-xs text-danger mt-1">No products found. Please check your product catalog.</div>
-                                    )}
-                                </div>
-                                
-                                <div className="po-item-variant flex-1" style={{minWidth: '150px'}}>
-                                    {(() => {
-                                        const selectedProduct = products.find(p => String(p.id) === String(item.product_id));
-                                        const hasVariants = selectedProduct?.product_variants?.length > 0;
-                                        
-                                        if (hasVariants) {
-                                            return (
-                                                <select
-                                                    className="form-control"
-                                                    value={item.product_variant_id}
-                                                    onChange={(e) => updateItem(index, 'product_variant_id', e.target.value)}
-                                                >
-                                                    <option value="">Select Variant...</option>
-                                                    {selectedProduct.product_variants.map(v => (
-                                                        <option key={v.id} value={v.id}>
-                                                            {v.size_value?.label || ''} {v.color_value?.label || ''}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            );
-                                        }
-                                        return (
-                                            <select className="form-control" disabled>
-                                                <option>No variants</option>
-                                            </select>
-                                        );
-                                    })()}
-                                </div>
-                                <div className="po-item-qty">
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        placeholder="Qty"
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                    />
-                                </div>
-                                <div className="po-item-cost">
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        placeholder="Cost"
-                                        min="0"
-                                        step="0.01"
-                                        value={item.unit_cost}
-                                        onChange={(e) => updateItem(index, 'unit_cost', e.target.value)}
-                                    />
-                                </div>
-                                <div className="po-item-subtotal">
-                                    ₱{(Number(item.quantity) * Number(item.unit_cost)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </div>
-                                <div className="po-item-action">
-                                    <button 
-                                        type="button"
-                                        className="btn btn--sm btn--danger"
-                                        onClick={() => removeItem(index)}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Total */}
-                    <div className="po-total mb-3">
-                        <div className="d-flex justify-between">
-                            <span>Total Items: {poForm.items.length}</span>
-                            <span className="font-bold text-lg">Total: ₱{calculateTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="d-flex gap-2">
-                        <button 
-                            type="button"
-                            className="btn btn--secondary flex-1"
-                            onClick={resetCreateForm}
-                            disabled={createLoading}
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            type="button"
-                            className="btn btn-primary flex-1"
-                            onClick={submitPO}
-                            disabled={createLoading}
-                        >
-                            {createLoading ? 'Creating...' : 'Create Purchase Order'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
         </div>
     );
 }

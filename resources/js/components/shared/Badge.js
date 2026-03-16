@@ -14,13 +14,22 @@ export function StatusBadge({ status }) {
     const variantMap = {
         'draft': 'gray',
         'pending': 'yellow',
-        'approved': 'blue',
+        'pending_supplier': 'blue',
+        'accepted': 'indigo',
+        'rejected': 'red',
+        'cancelled': 'red',
         'supplier_delivered': 'orange',
         'received': 'green',
         'active': 'green',
         'inactive': 'gray',
         'low_stock': 'red',
-        'interview_set': 'blue'
+        'interview_set': 'blue',
+        'confirmed': 'blue',
+        'out_for_delivery': 'indigo',
+        'delivered': 'green',
+        'returned': 'red',
+        'in_progress': 'blue',
+        'failed': 'red',
     };
     
     const variant = variantMap[status] || 'gray';

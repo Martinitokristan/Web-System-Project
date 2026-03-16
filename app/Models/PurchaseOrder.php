@@ -10,6 +10,7 @@ class PurchaseOrder extends Model
         'po_number', 'supplier_id', 'created_by', 'is_auto',
         'status', 'expected_date', 'total_cost',
         'rejection_reason', 'accepted_at',
+        'delivered_at', 'delivered_by', 'delivery_notes',
     ];
 
     protected $casts = ['is_auto' => 'boolean'];

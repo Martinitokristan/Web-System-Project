@@ -11,19 +11,37 @@ export default function StockTab() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState(''); // '' or 'low'
+    const [categoryFilter, setCategoryFilter] = useState('');
+    const [categories, setCategories] = useState([]);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
 
+    // Variant filters
+    const [sizeFilter, setSizeFilter] = useState('');
+    const [colorFilter, setColorFilter] = useState('');
+    const [weightFilter, setWeightFilter] = useState('');
+    const [variantMeta, setVariantMeta] = useState({ sizes: [], colors: [], weights: [] });
+
     const [transferModal, setTransferModal] = useState({ show: false, item: null, qty: '1' }); // Qty as string to handle inputs
     const [transferLoading, setTransferLoading] = useState(false);
+
+    useEffect(() => {
+        axios.get('/settings').then(res => {
+            setCategories(res.data.data?.categories || []);
+        }).catch(() => {});
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
         const fetchStock = () => {
             if (!isMounted) return;
             setLoading(true);
-            axios.get('/inventory', { params: { page, search, filter } })
+            const params = { page, search };
+            if (categoryFilter) params.category_id = categoryFilter;
+            if (sizeFilter) params.size = sizeFilter;
+            if (colorFilter) params.color = colorFilter;
+            if (weightFilter) params.weight = weightFilter;
+            axios.get('/inventory', { params })
                 .then(res => {
                     const paginated = res.data.data;
                     if (isMounted) {
@@ -32,6 +50,9 @@ export default function StockTab() {
                             total: paginated.total || 0,
                             current_page: paginated.current_page || 1
                         });
+                        if (res.data.variant_meta) {
+                            setVariantMeta(res.data.variant_meta);
+                        }
                     }
                 })
                 .finally(() => {
@@ -43,7 +64,7 @@ export default function StockTab() {
             clearTimeout(debounce);
             isMounted = false;
         };
-    }, [page, search, filter, refreshTrigger]);
+    }, [page, search, categoryFilter, sizeFilter, colorFilter, weightFilter, refreshTrigger]);
 
     const handleTransfer = async () => {
         const qty = Number(transferModal.qty);
@@ -79,57 +100,94 @@ export default function StockTab() {
                 search={search} onSearchChange={v => { setSearch(v); setPage(1); }}
                 filters={[
                     {
-                        value: filter, onChange: v => { setFilter(v); setPage(1); },
+                        value: categoryFilter, onChange: v => { setCategoryFilter(v); setPage(1); },
                         options: [
-                            { value: '', label: 'All Items' },
-                            { value: 'low', label: 'Low Stock Only' }
+                            { value: '', label: 'All Categories' },
+                            ...categories.map(c => ({ value: c.id, label: c.name }))
                         ]
-                    }
+                    },
+                    ...(variantMeta.sizes?.length > 0 ? [{
+                        value: sizeFilter, onChange: v => { setSizeFilter(v); setPage(1); },
+                        options: [
+                            { value: '', label: 'All Sizes' },
+                            ...variantMeta.sizes.map(s => ({ value: s, label: s }))
+                        ]
+                    }] : []),
+                    ...(variantMeta.colors?.length > 0 ? [{
+                        value: colorFilter, onChange: v => { setColorFilter(v); setPage(1); },
+                        options: [
+                            { value: '', label: 'All Colors' },
+                            ...variantMeta.colors.map(c => ({ value: c, label: c }))
+                        ]
+                    }] : []),
+                    ...(variantMeta.weights?.length > 0 ? [{
+                        value: weightFilter, onChange: v => { setWeightFilter(v); setPage(1); },
+                        options: [
+                            { value: '', label: 'All Weights' },
+                            ...variantMeta.weights.map(w => ({ value: w, label: w }))
+                        ]
+                    }] : []),
                 ]}
             />
 
             <div className="table-wrap">
-                <table className="data-table">
+                <table className="data-table" style={{ textAlign: 'center' }}>
                     <thead>
                         <tr>
-                            <th>SKU</th>
-                            <th>Product Name</th>
-                            <th>Variant (Size/Color)</th>
-                            <th>Warehouse Stock</th>
-                            <th>Storefront Stock</th>
-                            <th>Unit</th>
-                            <th>Threshold</th>
-                            <th>Status (Storefront)</th>
-                            <th>Actions</th>
+                            <th style={{ textAlign: 'center' }}>SKU</th>
+                            <th style={{ textAlign: 'left' }}>Product Name</th>
+                            <th style={{ textAlign: 'center' }}>Variant</th>
+                            <th style={{ textAlign: 'center' }}>Warehouse</th>
+                            <th style={{ textAlign: 'center' }}>Storefront</th>
+                            <th style={{ textAlign: 'center' }}>Sold</th>
+                            <th style={{ textAlign: 'center' }}>Imported</th>
+                            <th style={{ textAlign: 'center' }}>Unit</th>
+                            <th style={{ textAlign: 'center' }}>Threshold</th>
+                            <th style={{ textAlign: 'center' }}>Status</th>
+                            <th style={{ textAlign: 'center' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="10" className="text-center py-4"><div className="spinner"/></td></tr>
+                            <tr><td colSpan="11" style={{ textAlign: 'center', padding: '2rem' }}><div className="spinner"/></td></tr>
                         ) : inventory.data.length === 0 ? (
-                            <tr><td colSpan="10" className="text-center py-4 text-muted">No inventory found</td></tr>
+                            <tr><td colSpan="11" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No inventory found</td></tr>
                         ) : inventory.data.map(item => {
                             const isLow = item.current_stock <= item.reorder_threshold;
-                            const variantLabel = item.is_variant ? `${item.size !== '-' ? item.size : ''} ${item.color !== '-' ? item.color : ''}`.trim() : 'Base Product';
+                            const variantParts = [];
+                            if (item.size && item.size !== '-') variantParts.push(item.size);
+                            if (item.color && item.color !== '-') variantParts.push(item.color);
+                            if (item.weight && item.weight !== '-') variantParts.push(item.weight);
+                            const variantLabel = item.is_variant ? (variantParts.join(' / ') || '-') : 'Base Product';
 
                             return (
                                 <tr key={item.id}>
-                                    <td className="font-semi text-sm">{item.sku}</td>
-                                    <td>
-                                        <div className="font-semi">{item.name}</div>
-                                        <div className="text-muted text-sm">{item.supplier}</div>
+                                    <td style={{ textAlign: 'center', fontSize: '0.82rem', fontWeight: 600 }}>{item.sku}</td>
+                                    <td style={{ textAlign: 'left' }}>
+                                        <div style={{ fontWeight: 600 }}>{item.name}</div>
+                                        <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>{item.supplier}</div>
                                     </td>
-                                    <td>{variantLabel || '-'}</td>
-                                    <td className="font-bold text-orange">{formatNum(item.warehouse_stock)}</td>
-                                    <td className="font-bold text-lg">{formatNum(item.current_stock)}</td>
-                                    <td className="text-muted">{item.unit}</td>
-                                    <td className="td-amount">{formatNum(item.reorder_threshold)}</td>
-                                    <td>
+                                    <td style={{ textAlign: 'center' }}>{variantLabel}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 700, color: '#ea580c' }}>{formatNum(item.warehouse_stock)}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 700, fontSize: '1.05rem' }}>{formatNum(item.current_stock)}</td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <span style={{ fontWeight: 600, color: item.total_sold > 0 ? '#16a34a' : '#94a3b8' }}>
+                                            {formatNum(item.total_sold)}
+                                        </span>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <span style={{ fontWeight: 600, color: item.total_imported > 0 ? '#3b82f6' : '#94a3b8' }}>
+                                            {formatNum(item.total_imported)}
+                                        </span>
+                                    </td>
+                                    <td style={{ textAlign: 'center', color: '#94a3b8' }}>{item.unit}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{formatNum(item.reorder_threshold)}</td>
+                                    <td style={{ textAlign: 'center' }}>
                                         {isLow 
                                             ? <span className="badge badge--red">Low Stock</span> 
                                             : <span className="badge badge--green">Optimal</span>}
                                     </td>
-                                    <td>
+                                    <td style={{ textAlign: 'center' }}>
                                         {item.warehouse_stock > 0 && (
                                             <button 
                                                 className="btn btn--sm btn--primary"

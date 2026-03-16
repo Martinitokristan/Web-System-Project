@@ -144,7 +144,7 @@ export default function ProductModal({ isOpen, onClose, product, categories, sup
             isOpen={isOpen}
             onClose={onClose}
             title={product ? 'Edit Product' : 'Add New Product'}
-            size="xl"
+            size="fullscreen"
             footer={
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
                     <button className="btn btn--white" onClick={onClose}>Cancel</button>
@@ -356,23 +356,23 @@ export default function ProductModal({ isOpen, onClose, product, categories, sup
             <style>{`
                 .pm-wrap {
                     display: grid;
-                    grid-template-columns: 320px 1fr;
+                    grid-template-columns: 360px 1fr;
                     gap: 0;
-                    min-height: 480px;
+                    height: 100%;
                 }
                 .pm-left {
-                    padding: 20px;
+                    padding: 24px;
                     border-right: 1px solid var(--border);
                     overflow-y: auto;
-                    max-height: 75vh;
+                    height: 100%;
                     display: flex;
                     flex-direction: column;
-                    gap: 10px;
+                    gap: 12px;
                 }
                 .pm-right {
-                    padding: 20px;
+                    padding: 24px;
                     overflow-y: auto;
-                    max-height: 75vh;
+                    height: 100%;
                     display: flex;
                     flex-direction: column;
                     gap: 14px;

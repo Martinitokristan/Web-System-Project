@@ -14,9 +14,13 @@ class CustomerController extends Controller
         $query = User::where('role', 'customer')
             ->withCount(['sales'])
             ->withSum('sales', 'total_amount')
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%")
-                ->orWhere('email', 'like', "%{$request->search}%"))
+            ->when($request->status, function($q) use ($request) {
+                return $q->where('status', $request->status);
+            })
+            ->when($request->search, function($q) use ($request) {
+                return $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%");
+            })
             ->latest();
 
         return response()->json([
@@ -24,7 +28,9 @@ class CustomerController extends Controller
             'counts' => [
                 'total'         => User::where('role', 'customer')->count(),
                 'active_month'  => User::where('role', 'customer')
-                    ->whereHas('sales', fn($q) => $q->where('created_at', '>=', $currentMonth))
+                    ->whereHas('sales', function($q) use ($currentMonth) {
+                        return $q->where('created_at', '>=', $currentMonth);
+                    })
                     ->count(),
                 'suspended'     => User::where('role', 'customer')->where('status', 'suspended')->count(),
             ],
@@ -34,7 +40,7 @@ class CustomerController extends Controller
 
     public function myOrders(Request $request)
     {
-        $orders = \App\Models\Sale::with(['items.product', 'delivery.rider'])
+        $orders = \App\Models\Sale::with(['items.product', 'delivery.rider.riderProfile'])
             ->where('customer_id', $request->user()->id)
             ->latest()
             ->get();
@@ -47,15 +53,42 @@ class CustomerController extends Controller
             ->first();
         
         if (!$profile) {
+            // Return empty profile instead of 404 so checkout can still proceed
             return response()->json([
-                'message' => 'Profile not found',
-                'status' => 'error'
-            ], 404);
+                'data' => null,
+                'status' => 'success'
+            ]);
         }
 
         return response()->json([
             'data' => $profile,
             'status' => 'success'
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $data = $request->validate([
+            'address'      => 'nullable|string|max:500',
+            'landmark'     => 'nullable|string|max:255',
+            'province'     => 'nullable|string|max:100',
+            'municipality' => 'nullable|string|max:100',
+            'zip_code'     => 'nullable|string|max:10',
+            'latitude'     => 'nullable|numeric',
+            'longitude'    => 'nullable|numeric',
+            'age'          => 'nullable|integer|min:1|max:150',
+            'sex'          => 'nullable|string|in:male,female,other',
+        ]);
+
+        $profile = \App\Models\CustomerProfile::updateOrCreate(
+            ['user_id' => $request->user()->id],
+            $data
+        );
+
+        return response()->json([
+            'data' => $profile,
+            'message' => 'Profile updated successfully',
+            'status' => 'success',
         ]);
     }
 }

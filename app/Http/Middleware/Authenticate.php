@@ -15,7 +15,9 @@ class Authenticate extends Middleware
     protected function redirectTo($request)
     {
         if (! $request->expectsJson()) {
-            return route('login');
+            // SPA: return nothing so Sanctum returns 401 JSON instead of
+            // redirecting to a non-existent named route (which crashes artisan serve).
+            return null;
         }
     }
 }

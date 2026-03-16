@@ -43,6 +43,8 @@
   transition: var(--transition);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 6px;
 
   &:hover {
@@ -58,7 +60,7 @@
 @mixin input {
   width: 100%;
   padding: 0.55rem 0.875rem;
-  border: 1px solid var(--border);
+  border: 1.5px solid #94a3b8;
   border-radius: 8px;
   font-size: 0.875rem;
   color: var(--text);
@@ -69,11 +71,11 @@
 
   &:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25);
   }
 
   &::placeholder {
-    color: var(--text3);
+    color: #94a3b8;
   }
 }
 

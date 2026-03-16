@@ -11,10 +11,16 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with('riderProfile')
-            ->when($request->role, fn($q) => $q->where('role', $request->role))
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%")
-                ->orWhere('email', 'like', "%{$request->search}%"))
+            ->when($request->role, function($q) use ($request) {
+                return $q->where('role', $request->role);
+            })
+            ->when($request->status, function($q) use ($request) {
+                return $q->where('status', $request->status);
+            })
+            ->when($request->search, function($q) use ($request) {
+                return $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%");
+            })
             ->latest();
 
         return response()->json([
@@ -39,11 +45,10 @@ class UserController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        $user = User::create([
-            ...$data,
+        $user = User::create(array_merge($data, [
             'password' => Hash::make($data['password']),
             'status'   => 'active',
-        ]);
+        ]));
 
         // Auto-create rider profile
         if ($user->role === 'rider') {

@@ -102,7 +102,6 @@ class AuthController extends Controller
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required|string',
-            'role'     => 'nullable|string|in:admin,rider,customer',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -113,13 +112,6 @@ class AuthController extends Controller
             ]);
         }
 
-        // RBAC: Check if user has the required role for this login portal
-        if ($request->role && $user->role !== $request->role) {
-            return response()->json([
-                'message' => 'Unauthorized. You do not have the required permissions for this area.',
-                'status'  => 'error',
-            ], 403);
-        }
 
         if ($user->status === 'suspended') {
             return response()->json([

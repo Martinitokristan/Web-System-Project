@@ -3,26 +3,24 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
+// Set axios base URL once (outside component so it is set before any request)
+axios.defaults.baseURL = '/api';
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
+    // Start as true — we DON'T know yet if the token is valid
     const [loading, setLoading] = useState(true);
-
-    // Set axios defaults
-    axios.defaults.baseURL = '/api';
-    axios.defaults.headers.common['Accept'] = 'application/json';
-
-    const token = localStorage.getItem('hrms_token');
-    if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
 
     useEffect(() => {
         const storedToken = localStorage.getItem('hrms_token');
         if (storedToken) {
+            // Attach header before the me() call
+            axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
             axios.get('/auth/me')
                 .then(res => setUser(res.data.data))
                 .catch(() => {
                     localStorage.removeItem('hrms_token');
+                    delete axios.defaults.headers.common['Authorization'];
                     setUser(null);
                 })
                 .finally(() => setLoading(false));
@@ -59,7 +57,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );

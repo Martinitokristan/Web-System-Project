@@ -8,7 +8,7 @@ class ProductVariant extends Model
 {
     protected $fillable = [
         'product_id', 'size_value_id', 'color_value_id', 'weight_value_id',
-        'stock', 'price_override', 'sku_suffix'
+        'stock', 'price_override', 'sku_suffix', 'image_path'
     ];
 
     public function product()

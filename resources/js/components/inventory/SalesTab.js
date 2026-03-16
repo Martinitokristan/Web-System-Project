@@ -57,6 +57,41 @@ export default function SalesTab() {
         }
     };
 
+    const handleUpdateStatus = async (saleId, newStatus) => {
+        const labels = { confirmed: 'confirm', out_for_delivery: 'mark as out for delivery', delivered: 'mark as delivered', cancelled: 'cancel' };
+        if (!confirm(`Are you sure you want to ${labels[newStatus] || newStatus} this order?`)) return;
+        try {
+            const res = await axios.put(`/sales/${saleId}/status`, { status: newStatus });
+            showToast(res.data.message || 'Status updated');
+            setViewOrder(res.data.data);
+            triggerRefresh();
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Failed to update status', 'error');
+        }
+    };
+
+    const getNextStatuses = (currentStatus) => {
+        const flow = {
+            pending: ['confirmed', 'cancelled'],
+            confirmed: ['out_for_delivery', 'cancelled'],
+            out_for_delivery: ['delivered'],
+            delivered: [],
+            returned: [],
+            cancelled: [],
+        };
+        return flow[currentStatus] || [];
+    };
+
+    const statusButtonStyle = (status) => {
+        const styles = {
+            confirmed: { background: '#3b82f6', color: '#fff', label: 'Confirm Order' },
+            out_for_delivery: { background: '#6366f1', color: '#fff', label: 'Mark Out for Delivery' },
+            delivered: { background: '#10b981', color: '#fff', label: 'Mark Delivered' },
+            cancelled: { background: '#ef4444', color: '#fff', label: 'Cancel Order' },
+        };
+        return styles[status] || { background: '#6b7280', color: '#fff', label: status };
+    };
+
     return (
         <div>
             <div className="d-flex justify-between align-center mb-3">
@@ -72,6 +107,7 @@ export default function SalesTab() {
                                 { value: 'out_for_delivery', label: 'Out for Delivery' },
                                 { value: 'delivered', label: 'Delivered' },
                                 { value: 'returned', label: 'Returned' },
+                                { value: 'cancelled', label: 'Cancelled' },
                             ]
                         }
                     ]}
@@ -163,7 +199,26 @@ export default function SalesTab() {
                             </table>
                         </div>
 
-                        {viewOrder.status !== 'returned' && (
+                        {/* Status Action Buttons */}
+                        {getNextStatuses(viewOrder.status).length > 0 && (
+                            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                {getNextStatuses(viewOrder.status).map(nextStatus => {
+                                    const style = statusButtonStyle(nextStatus);
+                                    return (
+                                        <button
+                                            key={nextStatus}
+                                            className="btn w-full justify-center"
+                                            style={{ background: style.background, color: style.color, border: 'none', fontWeight: 600 }}
+                                            onClick={() => handleUpdateStatus(viewOrder.id, nextStatus)}
+                                        >
+                                            {style.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {viewOrder.status !== 'returned' && viewOrder.status !== 'cancelled' && viewOrder.status === 'delivered' && (
                             <button className="btn btn--danger w-full justify-center" onClick={() => handleReturn(viewOrder.id)}>
                                 Mark as Returned & Restock
                             </button>

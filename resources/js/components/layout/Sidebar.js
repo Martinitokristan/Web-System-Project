@@ -34,6 +34,9 @@ export default function Sidebar({ isOpen, onClose }) {
                 <NavLink to="/suppliers" className={({ isActive }) => `sidebar__item ${isActive ? 'active' : ''}`}>
                     <span className="icon">🤝</span> Suppliers
                 </NavLink>
+                <NavLink to="/supplier-catalog" className={({ isActive }) => `sidebar__item ${isActive ? 'active' : ''}`}>
+                    <span className="icon">🏪</span> Supplier Catalog
+                </NavLink>
 
                 <div className="sidebar__section-label">Reports</div>
                 <NavLink to="/reports" className={({ isActive }) => `sidebar__item ${isActive ? 'active' : ''}`}>

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSupplierAuth } from '../../context/SupplierAuthContext';
 
 export default function Login() {
-    const { login } = useAuth();
+    const { login: userLogin } = useAuth();
+    const { login: supplierLogin } = useSupplierAuth();
     const navigate = useNavigate();
-    
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -16,86 +18,104 @@ export default function Login() {
         setError('');
         setLoading(true);
 
-        // Intended role from query param or default to admin
-        const params = new URLSearchParams(window.location.search);
-        const intendedRole = params.get('role');
+        try {
+            const user = await userLogin(email, password, null);
+            if (user.role === 'rider')         navigate('/rider',     { replace: true });
+            else if (user.role === 'customer') navigate('/shop',      { replace: true });
+            else                               navigate('/dashboard', { replace: true });
+            return;
+        } catch (userErr) {
+            const status = userErr.response?.status;
+            if (!status || (status !== 401 && status !== 422 && status !== 403)) {
+                setError('Network error. Please try again.');
+                setLoading(false);
+                return;
+            }
+        }
 
         try {
-            const user = await login(email, password, intendedRole);
-            if (user.role === 'rider') navigate('/rider');
-            else if (user.role === 'customer') navigate('/shop');
-            else navigate('/dashboard');
-        } catch (err) {
-            const valErr = err.response?.data?.errors?.email?.[0];
-            setError(valErr || err.response?.data?.message || 'Login failed. Please check your credentials.');
+            await supplierLogin(email, password);
+            navigate('/supplier/dashboard', { replace: true });
+        } catch (supplierErr) {
+            setError('Invalid email or password. Please try again.');
             setLoading(false);
         }
     };
-
-    const params = new URLSearchParams(window.location.search);
-    const roleLabel = params.get('role');
-    const displayRole = roleLabel ? roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1) : 'Portal';
 
     return (
         <div className="auth-page">
             <div className="auth-page__left">
                 <div className="auth-box">
-                    <div className="auth-logo">HRMS <span>Pro</span></div>
-                    <h1 className="auth-headline">{displayRole} Login</h1>
-                    <p className="auth-sub">Enter your credentials to access your account.</p>
+                    <div className="auth-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+                        HRMS <span>Pro</span>
+                    </div>
+                    <h1 className="auth-headline">Unified Access Portal</h1>
+                    <p className="auth-sub">Enter your credentials to manage your hardware operations.</p>
 
                     {error && <div className="auth-error">{error}</div>}
 
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label>Email Address</label>
-                            <input 
-                                type="email" 
-                                required 
-                                value={email} 
-                                onChange={e => setEmail(e.target.value)} 
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
                                 placeholder="name@company.com"
+                                autoComplete="email"
                             />
                         </div>
 
                         <div className="form-group mb-1">
                             <label>Password</label>
-                            <input 
-                                type="password" 
-                                required 
-                                value={password} 
-                                onChange={e => setPassword(e.target.value)} 
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
                                 placeholder="••••••••"
+                                autoComplete="current-password"
                             />
                         </div>
 
-                        <div className="remember-row">
-                            <label>
+                        <div className="remember-row" style={{marginBottom: '1.5rem'}}>
+                            <label style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                 <input type="checkbox" /> Remember me
                             </label>
-                            <a>Forgot password?</a>
+                            <a href="#">Security Help?</a>
                         </div>
 
-                        <button className="btn btn-primary w-full justify-center" disabled={loading} style={{ padding: '0.75rem' }}>
-                            {loading ? 'Signing in...' : 'Sign In'}
+                        <button
+                            className="btn btn-primary"
+                            disabled={loading}
+                            style={{ width: '100%', height: '44px', fontSize: '0.95rem' }}
+                        >
+                            {loading ? 'Verifying Identity...' : 'Sign In to Instance'}
                         </button>
                     </form>
 
-                    <div className="auth-footer">
-                        Don't have an account? <Link to="/register">Register here</Link>
+                    <div className="auth-footer" style={{ marginTop: '2.5rem' }}>
+                        <p>Need a hardware account? <Link to="/register">Register here</Link></p>
+                        <p style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
+                            Supplier Partner? <Link to="/supplier/register" style={{fontWeight: 700}}>Join our Network</Link>
+                        </p>
                     </div>
                 </div>
             </div>
-            
-            <div className="auth-page__right">
-                <div className="illus-icon">📦</div>
-                <h2>Hardware Retail Management</h2>
-                <p>Everything you need to manage inventory, process sales, and track deliveries efficiently.</p>
-                
-                <div className="feat-list">
-                    <div className="feat-item"><div className="check">✓</div> Real-time stock alerts</div>
-                    <div className="feat-item"><div className="check">✓</div> Automated PO generation</div>
-                    <div className="feat-item"><div className="check">✓</div> Live rider tracking</div>
+
+            <div className="auth-page__right" style={{ 
+                backgroundImage: 'linear-gradient(rgba(17, 24, 39, 0.9), rgba(17, 24, 39, 0.9)), url("/images/hero-banner.png")',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+            }}>
+                <div className="illus-icon">🛠️</div>
+                <h2>Industrial Intelligence</h2>
+                <p>Access the core engine to streamline your inventory, sales, and logistics workflows.</p>
+                <div className="feat-list" style={{ marginTop: '2.5rem' }}>
+                    <div className="feat-item"><div className="check">✓</div> Multi-Role Permissions</div>
+                    <div className="feat-item"><div className="check">✓</div> End-to-End Fulfillment</div>
+                    <div className="feat-item"><div className="check">✓</div> Live Data & Analytics</div>
                 </div>
             </div>
         </div>

@@ -15,10 +15,16 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with(['category', 'unitType', 'supplier', 'inventory', 'productVariants.sizeValue', 'productVariants.colorValue', 'productVariants.weightValue'])
-            ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%")
-                ->orWhere('sku', 'like', "%{$request->search}%"))
-            ->when($request->category_id, fn($q) => $q->where('category_id', $request->category_id))
-            ->when($request->status !== null, fn($q) => $q->where('is_active', $request->status === 'active'));
+            ->when($request->search, function($q) use ($request) {
+                return $q->where('name', 'like', "%{$request->search}%")
+                         ->orWhere('sku', 'like', "%{$request->search}%");
+            })
+            ->when($request->category_id, function($q) use ($request) {
+                return $q->where('category_id', $request->category_id);
+            })
+            ->when($request->status !== null, function($q) use ($request) {
+                return $q->where('is_active', $request->status === 'active');
+            });
 
         $perPage = $request->get('per_page', 15);
         $products = $query->paginate($perPage);
@@ -32,46 +38,69 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'sku'            => 'required|string|max:50|unique:products,sku',
-            'name'           => 'required|string|max:150',
-            'category_id'    => 'required|exists:categories,id',
-            'unit_type_id'   => 'required|exists:unit_types,id',
-            'supplier_id'    => 'nullable|exists:suppliers,id',
-            'purchase_price' => 'required|numeric|min:0',
-            'sell_price'     => 'required|numeric|min:0',
-            'image'          => 'nullable|image|max:2048',
-            'initial_stock'  => 'nullable|numeric|min:0',
+            'sku'               => 'required|string|max:50|unique:products,sku',
+            'name'              => 'required|string|max:150',
+            'category_id'       => 'required|exists:categories,id',
+            'unit_type_id'      => 'required|exists:unit_types,id',
+            'supplier_id'       => 'nullable|exists:suppliers,id',
+            'purchase_price'    => 'required|numeric|min:0',
+            'sell_price'        => 'required|numeric|min:0',
+            'initial_stock'     => 'nullable|numeric|min:0',
             'reorder_threshold' => 'nullable|numeric|min:0',
-            'description'    => 'nullable|string',
-            'variants'       => 'nullable|string', // JSON string for variants
+            'description'       => 'nullable|string',
+            'variants'          => 'nullable|string',
         ]);
-
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = $path;
-        }
 
         $product = DB::transaction(function () use ($data, $request) {
             $product = Product::create($data);
-            
-            Inventory::create([
-                'product_id'        => $product->id,
-                'current_stock'     => $data['initial_stock'] ?? 0,
-                'reorder_threshold' => $data['reorder_threshold'] ?? 10,
-            ]);
+
+            // Check for orphaned warehouse stock (Warehouse Only) with matching SKU
+            $orphan = Inventory::whereNull('product_id')
+                ->whereHas('supplierProduct', function ($q) use ($data) {
+                    $q->where('sku', $data['sku']);
+                })->first();
+
+            if ($orphan) {
+                // Link existing warehouse record to this new product
+                $orphan->update([
+                    'product_id' => $product->id,
+                    'reorder_threshold' => $data['reorder_threshold'] ?? 10
+                ]);
+                
+                if (isset($data['initial_stock']) && $data['initial_stock'] > 0) {
+                    $orphan->increment('current_stock', $data['initial_stock']);
+                }
+
+                // Link existing PO items that were ordered from this supplier product
+                POItem::where('supplier_product_id', $orphan->supplier_product_id)
+                    ->whereNull('product_id')
+                    ->update(['product_id' => $product->id]);
+            } else {
+                Inventory::create([
+                    'product_id'        => $product->id,
+                    'current_stock'     => $data['initial_stock'] ?? 0,
+                    'reorder_threshold' => $data['reorder_threshold'] ?? 10,
+                ]);
+            }
 
             if ($request->has('variants')) {
                 $variants = json_decode($request->variants, true);
                 if (is_array($variants)) {
-                    foreach ($variants as $v) {
+                    foreach ($variants as $index => $v) {
                         $priceOverride = isset($v['price_override']) && $v['price_override'] !== '' ? $v['price_override'] : null;
-                    $product->productVariants()->create([
+                        $imagePath = null;
+                        $fileKey = "variant_image_{$index}";
+                        if ($request->hasFile($fileKey)) {
+                            $imagePath = $request->file($fileKey)->store('product-variants', 'public');
+                        }
+                        $product->productVariants()->create([
                             'size_value_id'   => $v['size_value_id'] ?? null,
                             'color_value_id'  => $v['color_value_id'] ?? null,
                             'weight_value_id' => $v['weight_value_id'] ?? null,
                             'stock'           => $v['stock'] ?? 0,
                             'price_override'  => $priceOverride,
                             'sku_suffix'      => $v['sku_suffix'] !== '' ? ($v['sku_suffix'] ?? null) : null,
+                            'image_path'      => $imagePath,
                         ]);
                     }
                 }
@@ -106,16 +135,10 @@ class ProductController extends Controller
             'supplier_id'    => 'nullable|exists:suppliers,id',
             'purchase_price' => 'required|numeric|min:0',
             'sell_price'     => 'required|numeric|min:0',
-            'image'          => 'nullable|image|max:2048',
             'is_active'      => 'nullable',
             'description'    => 'nullable|string',
             'variants'       => 'nullable|string',
         ]);
-
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = $path;
-        }
 
         $product->update($data);
 
@@ -127,8 +150,16 @@ class ProductController extends Controller
             $product->productVariants()->delete();
             $variants = json_decode($request->variants, true);
             if (is_array($variants)) {
-                foreach ($variants as $v) {
+                foreach ($variants as $index => $v) {
                     $priceOverride = isset($v['price_override']) && $v['price_override'] !== '' ? $v['price_override'] : null;
+                    $imagePath = null;
+                    $fileKey = "variant_image_{$index}";
+                    if ($request->hasFile($fileKey)) {
+                        $imagePath = $request->file($fileKey)->store('product-variants', 'public');
+                    } elseif (!empty($v['existing_image_path'])) {
+                        // Keep the existing image if no new one is uploaded
+                        $imagePath = $v['existing_image_path'];
+                    }
                     $product->productVariants()->create([
                         'size_value_id'   => $v['size_value_id'] ?? null,
                         'color_value_id'  => $v['color_value_id'] ?? null,
@@ -136,6 +167,7 @@ class ProductController extends Controller
                         'stock'           => $v['stock'] ?? 0,
                         'price_override'  => $priceOverride,
                         'sku_suffix'      => $v['sku_suffix'] !== '' ? ($v['sku_suffix'] ?? null) : null,
+                        'image_path'      => $imagePath,
                     ]);
                 }
                 $product->syncStockWithVariants();

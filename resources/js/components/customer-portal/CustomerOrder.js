@@ -61,15 +61,24 @@ export default function CustomerOrder() {
 
     useEffect(() => {
         const saved = localStorage.getItem("hrms_cart");
-        if (saved) setCart(JSON.parse(saved));
-        else navigate("/shop");
+        if (saved) {
+            const cartData = JSON.parse(saved);
+            // ONLY show items selected in the cart page
+            const selectedOnly = cartData.filter(item => item.selectedForCheckout);
+            if (selectedOnly.length === 0) {
+                navigate("/shop/cart");
+                return;
+            }
+            setCart(selectedOnly);
+        } else {
+            navigate("/shop");
+        }
 
         // Fetch customer profile for location
         axios
             .get("/customer/profile")
             .then((res) => {
                 setCustomerProfile(res.data.data);
-                // Pre-fill address if available
                 if (res.data.data?.address) {
                     const profile = res.data.data;
                     setAddress(
@@ -80,6 +89,18 @@ export default function CustomerOrder() {
             .catch(() => console.log("Could not fetch profile"));
     }, [navigate]);
 
+    const removeFromCart = (cartId) => {
+        const saved = JSON.parse(localStorage.getItem("hrms_cart") || "[]");
+        const newSaved = saved.filter(item => item.cartId !== cartId);
+        localStorage.setItem("hrms_cart", JSON.stringify(newSaved));
+        
+        const newCart = cart.filter(item => item.cartId !== cartId);
+        setCart(newCart);
+        if (newCart.length === 0) {
+            navigate("/shop");
+        }
+    };
+
     const total = cart.reduce(
         (sum, item) => sum + item.sell_price * item.qty,
         0,
@@ -87,27 +108,49 @@ export default function CustomerOrder() {
 
     const handleCheckout = async (e) => {
         e.preventDefault();
+
+        // Validate address
+        if (!address || address.trim().length < 5) {
+            showToast("Please enter a valid delivery address (at least 5 characters).", "error");
+            return;
+        }
+
+        // Validate cart has items
+        if (cart.length === 0) {
+            showToast("Your cart is empty.", "error");
+            return;
+        }
+
         setLoading(true);
 
         try {
             await axios.post("/sales", {
-                address: address,
+                address: address.trim(),
                 payment_method: payment,
                 customer_id: user?.id,
                 items: cart.map((i) => ({
                     product_id: i.id,
-                    product_variant_id: i.variant_id,
+                    product_variant_id: i.variant_id || null,
                     quantity: i.qty,
                     price: i.sell_price,
-                    variants: i.selectedVariants,
+                    variants: i.selectedVariants || {},
                 })),
             });
 
-            localStorage.removeItem("hrms_cart");
+            // Remove placed items from localStorage cart
+            const saved = JSON.parse(localStorage.getItem("hrms_cart") || "[]");
+            const cartIdsToRemove = cart.map(i => i.cartId);
+            const remainingCart = saved.filter(item => !cartIdsToRemove.includes(item.cartId));
+            
+            if (remainingCart.length > 0) {
+                localStorage.setItem("hrms_cart", JSON.stringify(remainingCart));
+            } else {
+                localStorage.removeItem("hrms_cart");
+            }
             setOrderSuccess(true);
         } catch (err) {
             showToast(
-                err.response?.data?.message || "Failed to place order",
+                err.response?.data?.message || "Failed to place order. Please try again.",
                 "error",
             );
             setLoading(false);
@@ -506,64 +549,66 @@ export default function CustomerOrder() {
                 <Modal
                     isOpen={orderSuccess}
                     onClose={() => navigate("/shop/history")}
-                    title="Order Successful!"
+                    title=""
                     size="sm"
                     hideFooter
                 >
-                    <div className="text-center py-4">
-                        <div
-                            style={{
-                                width: 80,
-                                height: 80,
-                                background: "#ecfdf5",
-                                borderRadius: "50%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                margin: "0 auto 1.5rem",
-                                color: "#10b981",
-                            }}
-                        >
-                            <svg
-                                width="40"
-                                height="40"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="3"
-                                    d="M5 13l4 4L19 7"
-                                />
+                    <div style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
+                        <div style={{ 
+                            width: '100px', 
+                            height: '100px', 
+                            background: '#f0fdf4', 
+                            borderRadius: '35%', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            margin: '0 auto 2rem',
+                            transform: 'rotate(10deg)',
+                            boxShadow: '0 20px 40px rgba(34, 197, 94, 0.15)'
+                        }}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">
-                            Order Successful!
+
+                        <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#111827', marginBottom: '1rem', letterSpacing: '-0.02em' }}>
+                            Order Placed!
                         </h2>
-                        <p className="text-muted mb-6">
-                            Thank you for your purchase. Your order has been
-                            placed and is being processed.
+                        
+                        <p style={{ fontSize: '1.1rem', color: '#6b7280', lineHeight: 1.6, marginBottom: '2.5rem', maxWidth: '300px', margin: '0 auto 2.5rem' }}>
+                            Your order has been successfully processed and our team is now on it.
                         </p>
 
-                        <div className="d-flex flex-column gap-2">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <button
-                                className="btn btn-primary w-full justify-center py-3"
-                                style={{
-                                    background: "var(--accent)",
-                                    borderRadius: 12,
-                                }}
                                 onClick={() => navigate("/shop/history")}
+                                style={{
+                                    background: '#111827',
+                                    color: '#fff',
+                                    padding: '1.25rem',
+                                    borderRadius: '16px',
+                                    border: 'none',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s',
+                                }}
                             >
-                                View Order History
+                                Track Order <span>→</span>
                             </button>
                             <button
-                                className="btn btn--link w-full justify-center py-2"
-                                style={{ color: "var(--accent)" }}
                                 onClick={() => navigate("/shop")}
+                                style={{
+                                    background: 'transparent',
+                                    color: '#6b7280',
+                                    padding: '1rem',
+                                    border: 'none',
+                                    fontSize: '1rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                }}
                             >
-                                Continue Shopping
+                                Back to Shop
                             </button>
                         </div>
                     </div>
@@ -623,7 +668,12 @@ export default function CustomerOrder() {
                                 padding: '1.5rem',
                             }}
                         >
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', textAlign: 'center' }}>Order Summary</h3>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: '#111827' }}>Order Summary</h3>
+                                <p style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                                    Review the items you've selected from your cart.
+                                </p>
+                            </div>
 
                             <div className="items-list mb-4">
                                 {cart.map((item) => (
@@ -631,13 +681,15 @@ export default function CustomerOrder() {
                                         key={item.cartId || item.id}
                                         className="summary-item"
                                         style={{
-                                            padding: '1rem 0',
-                                            borderBottom: '1px solid #f0f0f0',
+                                            padding: '1.25rem',
+                                            borderBottom: '1px solid #f8fafc',
                                             display: 'flex',
-                                            gap: '1rem',
-                                            alignItems: 'flex-start',
+                                            gap: '1.25rem',
+                                            alignItems: 'center',
+                                            transition: 'background 0.2s'
                                         }}
                                     >
+
                                         {/* Product Image */}
                                         <div style={{
                                             width: '80px',
@@ -666,28 +718,47 @@ export default function CustomerOrder() {
                                                 {item.name}
                                             </div>
                                             {item.variantString && (
-                                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#333' }}>
-                                                    [{item.variantString}]
+                                                <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                                                    {item.variantString}
                                                 </div>
                                             )}
-                                            {item.product_variants?.length > 0 && (
+                                            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                                Qty: {item.qty} × ₱{item.sell_price.toLocaleString()}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                {item.product_variants?.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedProduct(item)}
+                                                        style={{
+                                                            fontSize: '0.75rem',
+                                                            color: 'var(--accent)',
+                                                            fontWeight: 600,
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            padding: 0,
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => setSelectedProduct(item)}
+                                                    onClick={() => removeFromCart(item.cartId)}
                                                     style={{
-                                                        fontSize: '0.85rem',
-                                                        color: 'var(--accent)',
+                                                        fontSize: '0.75rem',
+                                                        color: '#ef4444',
                                                         fontWeight: 600,
                                                         background: 'none',
                                                         border: 'none',
                                                         cursor: 'pointer',
-                                                        padding: '0.25rem 0',
-                                                        marginTop: '0.5rem',
+                                                        padding: 0,
                                                     }}
                                                 >
-                                                    Edit Details
+                                                    Remove
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
 
                                         <div style={{ fontSize: '1.1rem', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }}>

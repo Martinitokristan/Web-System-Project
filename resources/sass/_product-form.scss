@@ -1,0 +1,314 @@
+// resources/sass/_product-form.scss
+// Product Add/Edit — full-content page view (two-column, no header)
+
+.pf-page {
+  display: flex;
+  flex-direction: column;
+  // Break out of .main-content padding (1.75rem) to fill edge-to-edge
+  margin: -1.75rem;
+  // Height = viewport minus topbar (60px)
+  height: calc(100vh - 60px);
+  background: var(--bg);
+  animation: pf-slide-in 0.2s ease;
+  overflow: hidden;
+}
+
+@keyframes pf-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Body (two columns) ────────────────────────────────────────────────────────
+.pf-body {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+// ── Left: General Info & Pricing ─────────────────────────────────────────────
+.pf-col-info {
+  padding: 1.5rem 1.75rem;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--surface);
+}
+
+.pf-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.25rem 0;
+}
+
+.pf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text2);
+  }
+
+  input, select, textarea {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--text);
+    background: var(--bg);
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+
+    &::placeholder { color: var(--text3); }
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,140,0,0.12);
+    }
+
+    &.pf-has-error {
+      border-color: #dc2626;
+      background: #fef2f2;
+    }
+  }
+
+  .pf-error { font-size: 0.7rem; color: #dc2626; font-weight: 600; }
+}
+
+.pf-prefix-wrap {
+  position: relative;
+
+  .pf-prefix {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 0.875rem;
+  }
+
+  input { padding-left: 1.5rem; }
+}
+
+.pf-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+// ── Right: Variants ───────────────────────────────────────────────────────────
+.pf-col-variants {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #fafbfc;
+}
+
+.pf-no-variants {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text2);
+
+  .pf-no-variants-icon { font-size: 3rem; }
+  p { margin: 0; font-size: 0.9rem; }
+  strong { color: var(--text); }
+}
+
+.pf-variant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e9f7ef;
+  border-radius: 8px;
+  padding: 0.5rem 0.875rem;
+}
+
+.btn--danger-soft {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover { background: #fca5a5; }
+}
+
+// ── Variant Matrix ─────────────────────────────────────────────────────────────
+.pf-matrix-wrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-matrix-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.875rem;
+  background: #f8fbff;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text2);
+}
+
+.pf-matrix-scroll {
+  overflow-x: auto;
+  flex: 1;
+}
+
+.pf-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--surface);
+  }
+
+  td {
+    padding: 0.45rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+}
+
+// ── Per-variant image cell ─────────────────────────────────────────────────────
+.pf-variant-img-cell {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.2s;
+
+  &:hover { border-color: var(--accent); }
+}
+
+.pf-variant-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
+  display: block;
+}
+
+.pf-variant-img-placeholder {
+  font-size: 1.1rem;
+  color: var(--text3);
+  line-height: 1;
+}
+
+.pf-matrix-input {
+  width: 100%;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: var(--bg);
+  color: var(--text);
+  box-sizing: border-box;
+  min-width: 70px;
+
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255,140,0,0.1);
+  }
+}
+
+.pf-rem-row {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  transition: background 0.15s;
+
+  &:hover { background: #fca5a5; }
+}
+
+.pf-matrix-empty {
+  background: #fffbeb;
+  border: 1px dashed #fcd34d;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  color: #92400e;
+  font-size: 0.85rem;
+  margin: 0.75rem;
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+.pf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.5rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 900px) {
+  .pf-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .pf-col-info {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}

@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import FilterBar from '../shared/FilterBar';
 import Pagination from '../shared/Pagination';
 import ConfirmModal from '../shared/ConfirmModal';
-import ProductModal from './ProductModal';
+import ProductForm from './ProductForm';
 
 export default function Products() {
     const [products, setProducts] = useState({ data: [], total: 0, current_page: 1 });
@@ -21,11 +21,15 @@ export default function Products() {
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     
-    // Modals
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // View: 'list' | 'form'
+    const [view, setView] = useState('list');
     const [editingProduct, setEditingProduct] = useState(null);
     const [deleteId, setDeleteId] = useState(null);
     const { showToast } = useToast();
+
+    const openCreate = () => { setEditingProduct(null); setView('form'); };
+    const openEdit   = (p) => { setEditingProduct(p);    setView('form'); };
+    const closeForm  = () => { setEditingProduct(null); setView('list'); };
 
     useEffect(() => {
         let isMounted = true;
@@ -76,10 +80,7 @@ export default function Products() {
         };
     }, [page, search, categoryFilter, refreshTrigger]);
 
-    const handleEdit = (product) => {
-        setEditingProduct(product);
-        setIsModalOpen(true);
-    };
+    const handleEdit = (product) => openEdit(product);
 
     const handleDelete = async () => {
         try {
@@ -93,11 +94,26 @@ export default function Products() {
         }
     };
 
+    // If form view, render ProductForm filling the content area
+    if (view === 'form') {
+        return (
+            <ProductForm
+                product={editingProduct}
+                categories={categories}
+                suppliers={suppliers}
+                unitTypes={unitTypes}
+                variants={allVariants}
+                onSuccess={() => { closeForm(); triggerRefresh(); }}
+                onCancel={closeForm}
+            />
+        );
+    }
+
     return (
         <div>
             <div className="page-header">
                 <h2 className="page-title">Products Masterlist</h2>
-                <button className="btn btn-primary" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
+                <button className="btn btn-primary" onClick={openCreate}>
                     + New Product
                 </button>
             </div>
@@ -141,10 +157,12 @@ export default function Products() {
                                 <tr key={p.id}>
                                     <td>
                                         <div className="d-flex align-center gap-2">
-                                            {p.image_path ? 
-                                                <img src={`/storage/${p.image_path}`} alt={p.name} width="40" height="40" style={{borderRadius: 6, objectFit: 'cover'}} /> :
-                                                <div style={{width: 40, height: 40, borderRadius: 6, background: 'var(--surface2)', display: 'grid', placeItems:'center'}}>📦</div>
-                                            }
+                                            {(() => {
+                                                const firstImg = p.product_variants?.find(v => v.image_path)?.image_path;
+                                                return firstImg
+                                                    ? <img src={`/storage/${firstImg}`} alt={p.name} width="40" height="40" style={{borderRadius: 6, objectFit: 'cover'}} />
+                                                    : <div style={{width: 40, height: 40, borderRadius: 6, background: 'var(--surface2)', display: 'grid', placeItems:'center'}}>📦</div>;
+                                            })()}
                                             <div className="font-semi text-sm">{p.sku}</div>
                                         </div>
                                     </td>
@@ -172,7 +190,7 @@ export default function Products() {
                                     </td>
                                     <td>
                                         <div className="td-actions">
-                                            <button className="btn btn--sm btn--ghost" onClick={() => handleEdit(p)}>Edit</button>
+                                            <button className="btn btn--sm btn--ghost" onClick={() => openEdit(p)}>Edit</button>
                                             <button className="btn btn--sm btn--danger text-white" onClick={() => setDeleteId(p.id)}>Delete</button>
                                         </div>
                                     </td>
@@ -185,16 +203,7 @@ export default function Products() {
 
             <Pagination page={page} total={products.total} perPage={15} onChange={setPage} />
 
-            <ProductModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)}
-                product={editingProduct}
-                categories={categories}
-                suppliers={suppliers}
-                unitTypes={unitTypes}
-                variants={allVariants}
-                onSuccess={() => { setIsModalOpen(false); triggerRefresh(); }}
-            />
+            {/* ProductModal removed — list + form are now view-switched */}
 
             <ConfirmModal 
                 isOpen={!!deleteId}

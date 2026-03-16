@@ -48,18 +48,22 @@ export default function RiderRegister() {
     };
 
     return (
-        <div className="auth-page auth-page--wide">
+        <div className="auth-page">
             <div className="auth-page__left">
                 <div className="auth-box auth-box--wide">
-                    <div className="auth-logo">HRMS <span>Pro</span></div>
-                    <h1 className="auth-headline">Rider Registration</h1>
-                    <p className="auth-sub">Join our delivery fleet and start earning.</p>
+                    <div className="auth-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+                        HRMS <span>Pro</span>
+                    </div>
+                    <h1 className="auth-headline">Rider Fleet Application</h1>
+                    <p className="auth-sub">Apply to become a professional logistics partner.</p>
 
                     <form onSubmit={handleSubmit} className="register-grid">
                         <div className="form-section">
-                            <h3 className="section-title">Personal Details</h3>
+                            <div className="section-title">
+                                <span style={{fontSize: '1.1rem'}}>👤</span> Driver Profile
+                            </div>
                             <div className="form-group">
-                                <label>Full Name</label>
+                                <label>Full Legal Name *</label>
                                 <input 
                                     type="text" 
                                     value={form.name} 
@@ -70,7 +74,7 @@ export default function RiderRegister() {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Email Address</label>
+                                    <label>Email Address *</label>
                                     <input 
                                         type="email" 
                                         value={form.email} 
@@ -80,7 +84,7 @@ export default function RiderRegister() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Phone Number</label>
+                                    <label>Phone Number *</label>
                                     <input 
                                         type="tel" 
                                         value={form.phone} 
@@ -91,43 +95,47 @@ export default function RiderRegister() {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label>Residence Address</label>
+                                <label>Current Residential Address *</label>
                                 <textarea 
                                     value={form.address}
                                     onChange={(e) => setForm({...form, address: e.target.value})}
                                     required
-                                    placeholder="Enter your full home address"
+                                    placeholder="Complete home address"
                                     rows="2"
                                 />
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Password</label>
+                                    <label>System Password *</label>
                                     <input 
                                         type="password" 
                                         value={form.password} 
                                         onChange={(e) => setForm({...form, password: e.target.value})} 
                                         required 
                                         minLength="8" 
+                                        placeholder="Min 8 chars"
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Confirm Password</label>
+                                    <label>Confirm Password *</label>
                                     <input 
                                         type="password" 
                                         value={form.password_confirmation} 
                                         onChange={(e) => setForm({...form, password_confirmation: e.target.value})} 
                                         required 
+                                        placeholder="Repeat password"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <div className="form-section">
-                            <h3 className="section-title">Professional Info</h3>
+                            <div className="section-title">
+                                <span style={{fontSize: '1.1rem'}}>🚛</span> Logistics Equipment
+                            </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Vehicle Type</label>
+                                    <label>Vehicle Category</label>
                                     <select 
                                         className="form-control"
                                         value={form.vehicle_type}
@@ -151,7 +159,7 @@ export default function RiderRegister() {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label>Drivers License Number</label>
+                                <label>Driver's License Number</label>
                                 <input 
                                     type="text" 
                                     value={form.license_number} 
@@ -162,7 +170,7 @@ export default function RiderRegister() {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Valid ID Type</label>
+                                    <label>Verification ID Type</label>
                                     <select 
                                         className="form-control"
                                         value={form.valid_id_type}
@@ -176,50 +184,54 @@ export default function RiderRegister() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label>Upload Valid ID</label>
+                                    <label>ID Image Upload</label>
                                     <input 
                                         type="file" 
                                         onChange={(e) => setIdFile(e.target.files[0])} 
                                         required 
-                                        accept="image/*,.pdf"
+                                        accept="image/*"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <div className="register-actions">
-                            <button className="btn btn-primary w-full justify-center" disabled={submitting} style={{ padding: '1rem' }}>
-                                {submitting ? 'Submitting Application...' : 'Apply as Rider'}
+                            <button className="btn btn-primary" disabled={submitting} style={{ width: '100%', height: '44px', fontSize: '0.95rem' }}>
+                                {submitting ? 'Processing Application...' : 'Submit Professional Application'}
                             </button>
+                            
+                            <div className="auth-footer" style={{ marginTop: '2rem' }}>
+                                Already have a rider account? <Link to="/login">Rider Sign In</Link>
+                            </div>
                         </div>
                     </form>
-
-                    <div className="auth-footer">
-                        Already have an account? <Link to="/login">Sign in</Link>
-                    </div>
                 </div>
             </div>
             
-            <div className="auth-page__right">
-                <div className="illus-icon">🏍️</div>
-                <h2>Become a Delivery Partner</h2>
-                <p>Register to join our fleet. After submission, our HR team will review your ID and schedule an in-person interview.</p>
-                <div className="steps-list mt-4">
+            <div className="auth-page__right" style={{ 
+                backgroundImage: 'linear-gradient(rgba(17, 24, 39, 0.9), rgba(17, 24, 39, 0.9)), url("/images/hero-banner.png")',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+            }}>
+                <div className="illus-icon">🛵</div>
+                <h2>Fleet Partnership</h2>
+                <p>Join our professional last-mile delivery fleet. High commission rates and automated route optimization.</p>
+                <div className="steps-list" style={{ marginTop: '2.5rem' }}>
                     <div className="step-item">
                         <div className="step-num">1</div>
-                        <div><strong>Register:</strong> Submit your details and ID.</div>
+                        <div><strong>Application:</strong> Submit your credentials.</div>
                     </div>
                     <div className="step-item">
                         <div className="step-num">2</div>
-                        <div><strong>Review:</strong> Admin verifies your documents.</div>
+                        <div><strong>Verification:</strong> Document review by HR.</div>
                     </div>
                     <div className="step-item">
                         <div className="step-num">3</div>
-                        <div><strong>Interview:</strong> In-person screening.</div>
+                        <div><strong>Verification:</strong> Interview & Screening.</div>
                     </div>
                     <div className="step-item">
                         <div className="step-num">4</div>
-                        <div><strong>Start:</strong> Get hired and start delivering!</div>
+                        <div><strong>Deployment:</strong> Start your first route.</div>
                     </div>
                 </div>
             </div>

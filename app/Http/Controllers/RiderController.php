@@ -19,8 +19,12 @@ class RiderController extends Controller
             ->withCount(['deliveries as active_deliveries_count' => function($q) {
                 $q->whereIn('status', ['pending', 'in_progress']);
             }])
-            ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->when($request->search, function($q) use ($request) {
+                return $q->where('name', 'like', "%{$request->search}%");
+            })
+            ->when($request->status, function($q) use ($request) {
+                return $q->where('status', $request->status);
+            })
             ->latest();
 
         return response()->json([
@@ -57,7 +61,7 @@ class RiderController extends Controller
 
     public function myDeliveries(Request $request)
     {
-        $deliveries = \App\Models\Delivery::with(['sale.customer', 'sale.items.product'])
+        $deliveries = Delivery::with(['sale.customer', 'sale.items.product'])
             ->where('rider_id', $request->user()->id)
             ->latest()
             ->get();
@@ -66,7 +70,7 @@ class RiderController extends Controller
 
     public function toggleStatus(Request $request)
     {
-        $profile = \App\Models\RiderProfile::where('user_id', $request->user()->id)->first();
+        $profile = RiderProfile::where('user_id', $request->user()->id)->first();
         if ($profile) {
             $profile->availability = $profile->availability === 'off_duty' ? 'available' : 'off_duty';
             $profile->save();
@@ -96,7 +100,7 @@ class RiderController extends Controller
 
         // Update rider's current location if provided
         if ($request->has(['latitude', 'longitude'])) {
-            $profile = \App\Models\RiderProfile::where('user_id', $riderId)->first();
+            $profile = RiderProfile::where('user_id', $riderId)->first();
             if ($profile) {
                 $profile->current_latitude = $request->latitude;
                 $profile->current_longitude = $request->longitude;
@@ -105,27 +109,29 @@ class RiderController extends Controller
         }
 
         $stats = [
-            'total'     => \App\Models\Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->count(),
-            'done'      => \App\Models\Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'delivered')->count(),
-            'active'    => \App\Models\Delivery::where('rider_id', $riderId)->whereIn('status', ['pending', 'in_progress'])->count(),
-            'failed'    => \App\Models\Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'failed')->count(),
+            'total'     => Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->count(),
+            'done'      => Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'delivered')->count(),
+            'active'    => Delivery::where('rider_id', $riderId)->whereIn('status', ['pending', 'in_progress'])->count(),
+            'failed'    => Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'failed')->count(),
             'quota'     => 10000,
-            'collected' => \App\Models\Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'delivered')->with('sale')->get()->sum(fn($d) => optional($d->sale)->payment_method === 'cod' ? $d->sale->total_amount : 0),
+            'collected' => Delivery::where('rider_id', $riderId)->where('created_at', '>=', $today)->where('status', 'delivered')->with('sale')->get()->sum(function($d) {
+                return optional($d->sale)->payment_method === 'cod' ? $d->sale->total_amount : 0;
+            }),
         ];
 
-        $deliveries = \App\Models\Delivery::with(['sale.customer.customerProfile', 'sale.items.product'])
+        $deliveries = Delivery::with(['sale.customer.customerProfile', 'sale.items.product'])
             ->where('rider_id', $riderId)
             ->latest()
             ->get();
 
         // Get rider's current location for distance calculations
-        $riderProfile = \App\Models\RiderProfile::where('user_id', $riderId)->first();
+        $riderProfile = RiderProfile::where('user_id', $riderId)->first();
         $riderLat = $riderProfile->current_latitude ?? 7.0707; // Default Davao coordinates
         $riderLon = $riderProfile->current_longitude ?? 125.6080;
 
         $distanceCalculator = app(\App\Services\DistanceCalculator::class);
 
-        $nearby = \App\Models\Delivery::with(['sale.customer.customerProfile', 'sale.items.product'])
+        $nearby = Delivery::with(['sale.customer.customerProfile', 'sale.items.product'])
             ->whereNull('rider_id')
             ->where('status', 'pending')
             ->latest()
@@ -182,5 +188,84 @@ class RiderController extends Controller
         $user->update(['status' => 'active']);
         
         return response()->json(['status' => 'success', 'message' => 'Rider hired and activated!']);
+    }
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        $user->update([
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ]);
+
+        if ($request->has('address')) {
+            $user->riderProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                ['address' => $request->address]
+            );
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile updated successfully',
+            'user' => $user->load('riderProfile')
+        ]);
+    }
+
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|max:2048',
+        ]);
+
+        $user = $request->user();
+        $path = $request->file('photo')->store('profile-photos', 'public');
+        
+        $user->update(['photo' => $path]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Photo updated successfully',
+            'photo_url' => asset('storage/' . $path),
+            'user' => $user->load('riderProfile')
+        ]);
+    }
+
+    public function updateSecurity(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|current_password',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $request->user()->update([
+            'password' => bcrypt($request->password)
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password changed successfully'
+        ]);
+    }
+
+    public function getNotifications(Request $request)
+    {
+        $notifications = $request->user()->notifications()->latest()->limit(50)->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $notifications,
+            'unread_count' => $request->user()->unreadNotifications()->count()
+        ]);
+    }
+
+    public function markNotificationsRead(Request $request)
+    {
+        $request->user()->unreadNotifications->markAsRead();
+        return response()->json(['status' => 'success']);
     }
 }

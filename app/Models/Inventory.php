@@ -11,6 +11,7 @@ class Inventory extends Model
     protected $fillable = [
         'product_id',
         'product_variant_id',
+        'supplier_product_id',
         'current_stock',
         'warehouse_stock',
         'reorder_threshold',
@@ -29,10 +30,16 @@ class Inventory extends Model
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 
+    public function supplierProduct()
+    {
+        return $this->belongsTo(SupplierProduct::class, 'supplier_product_id');
+    }
+
     public function isLowStock(): bool
     {
-        // For variant rows: check warehouse stock; for base rows check current_stock
-        $stock = $this->product_variant_id ? $this->warehouse_stock : $this->current_stock;
+        // For orphans and variants, we primarily track warehouse_stock.
+        // For standard local products, we track current_stock (storefront).
+        $stock = (!$this->product_id || $this->product_variant_id) ? $this->warehouse_stock : $this->current_stock;
         return $stock <= $this->reorder_threshold;
     }
 }

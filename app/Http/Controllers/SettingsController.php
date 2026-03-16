@@ -162,4 +162,17 @@ class SettingsController extends Controller
         Category::destroy($id);
         return response()->json(['status' => 'success']);
     }
+
+    public function getNotifications(Request $request)
+    {
+        $user = $request->user();
+        $notifications = $user->notifications()->orderBy('created_at', 'desc')->take(30)->get();
+        return response()->json(['data' => $notifications]);
+    }
+
+    public function markAllNotificationsRead(Request $request)
+    {
+        $request->user()->unreadNotifications->markAsRead();
+        return response()->json(['status' => 'success']);
+    }
 }

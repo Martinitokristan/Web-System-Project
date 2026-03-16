@@ -21,7 +21,13 @@ export default function CartPage() {
         const savedCart = localStorage.getItem('hrms_cart');
         if (savedCart) {
             try {
-                setCart(JSON.parse(savedCart));
+                const parsed = JSON.parse(savedCart);
+                // Ensure all items have a selectedForCheckout property
+                const updated = parsed.map(item => ({
+                    ...item,
+                    selectedForCheckout: item.selectedForCheckout !== undefined ? item.selectedForCheckout : true
+                }));
+                setCart(updated);
             } catch (e) {
                 console.error('Error parsing cart:', e);
             }
@@ -136,11 +142,18 @@ export default function CartPage() {
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
     const handleCheckout = () => {
-        if (cart.length === 0) {
-            showToast('Your cart is empty', 'error');
+        const selectedCount = cart.filter(item => item.selectedForCheckout).length;
+        if (selectedCount === 0) {
+            showToast('Please select at least one item to checkout', 'error');
             return;
         }
         navigate('/shop/order');
+    };
+
+    const toggleSelection = (cartId) => {
+        setCart(prev => prev.map(item => 
+            item.cartId === cartId ? { ...item, selectedForCheckout: !item.selectedForCheckout } : item
+        ));
     };
 
     if (cart.length === 0) {
@@ -245,34 +258,66 @@ export default function CartPage() {
                     {cart.map((item, index) => (
                         <div
                             key={item.cartId}
+                            onClick={() => toggleSelection(item.cartId)}
                             style={{
                                 background: '#fff',
-                                borderRadius: '16px',
-                                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                borderRadius: '24px',
+                                boxShadow: item.selectedForCheckout 
+                                    ? '0 10px 25px rgba(99, 102, 241, 0.12)' 
+                                    : '0 4px 6px -1px rgba(0,0,0,0.02)',
                                 padding: '1.5rem',
-                                marginBottom: '1rem',
+                                marginBottom: '1.25rem',
                                 display: 'flex',
-                                gap: '1rem',
-                                alignItems: 'flex-start',
+                                gap: '1.5rem',
+                                alignItems: 'center',
+                                border: item.selectedForCheckout ? '2px solid #6366f1' : '2px solid transparent',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                position: 'relative',
+                                transform: item.selectedForCheckout ? 'translateY(-2px)' : 'none',
                             }}
                         >
+                            {/* Selection Indicator (Premium Dot) */}
+                            {item.selectedForCheckout && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '1rem',
+                                    right: '1rem',
+                                    width: '24px',
+                                    height: '24px',
+                                    backgroundColor: '#6366f1',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#fff',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                    boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)'
+                                }}>
+                                    ✓
+                                </div>
+                            )}
+
                             {/* Product Image */}
                             <div style={{
-                                width: '100px',
-                                height: '100px',
-                                borderRadius: '12px',
+                                width: '110px',
+                                height: '110px',
+                                borderRadius: '20px',
                                 background: '#f8fafc',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '2rem',
+                                fontSize: '2.5rem',
                                 flexShrink: 0,
+                                overflow: 'hidden',
+                                border: '1px solid #f1f5f9'
                             }}>
                                 {item.image_path ? (
                                     <img 
                                         src={`/storage/${item.image_path}`} 
                                         alt={item.name}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
                                 ) : (
                                     '📦'
@@ -285,175 +330,114 @@ export default function CartPage() {
                                     display: 'flex', 
                                     justifyContent: 'space-between', 
                                     alignItems: 'flex-start',
-                                    marginBottom: '0.5rem',
+                                    marginBottom: '0.4rem',
                                 }}>
-                                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#111827', letterSpacing: '-0.01em' }}>
                                         {item.name}
                                     </h3>
                                     <button
-                                        onClick={() => removeItem(item.cartId)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeItem(item.cartId);
+                                        }}
+                                        aria-label="Remove item"
                                         style={{
-                                            background: 'none',
+                                            background: '#fee2e2',
                                             border: 'none',
                                             color: '#ef4444',
                                             cursor: 'pointer',
-                                            fontSize: '1.2rem',
-                                            padding: '0.25rem',
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '10px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '0.85rem',
+                                            transition: 'transform 0.2s',
                                         }}
                                     >
                                         ✕
                                     </button>
                                 </div>
 
-                                {/* Variant Info - Display all variants without brackets */}
                                 {item.variantString && (
                                     <div style={{ 
-                                        fontSize: '1rem', 
+                                        fontSize: '0.9rem', 
                                         fontWeight: 600, 
-                                        color: '#333',
+                                        color: '#6366f1',
                                         marginBottom: '0.75rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em'
                                     }}>
                                         {item.variantString}
                                     </div>
                                 )}
 
-                                {/* All Available Variants with Stock Info */}
-                                {item.product_variants?.length > 0 && (
-                                    <div style={{ marginBottom: '1rem' }}>
-                                        <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem', fontWeight: 500 }}>
-                                            Available Options:
-                                        </div>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            {item.product_variants.map((variant) => {
-                                                const isSelected = item.variant_id === variant.id;
-                                                const inStock = (variant.stock || 0) > 0;
-                                                const variantLabel = variant.size_value?.label || variant.size_value || 
-                                                                    variant.color_value?.label || variant.color_value ||
-                                                                    variant.weight_value?.label || variant.weight_value ||
-                                                                    'Variant';
-                                                
-                                                return (
-                                                    <button
-                                                        key={variant.id}
-                                                        onClick={() => inStock && switchVariant(item, variant)}
-                                                        disabled={!inStock}
-                                                        style={{
-                                                            padding: '0.5rem 0.75rem',
-                                                            borderRadius: '8px',
-                                                            border: isSelected ? '2px solid var(--accent)' : '1px solid #e0e0e0',
-                                                            background: isSelected ? '#fff5f0' : inStock ? '#fff' : '#f5f5f5',
-                                                            color: inStock ? (isSelected ? 'var(--accent)' : '#333') : '#999',
-                                                            fontSize: '0.875rem',
-                                                            fontWeight: isSelected ? 700 : 500,
-                                                            cursor: inStock ? 'pointer' : 'not-allowed',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.4rem',
-                                                            transition: 'all 0.2s ease',
-                                                        }}
-                                                        title={inStock ? `${variant.stock} in stock` : 'Out of stock'}
-                                                    >
-                                                        <span>{variantLabel}</span>
-                                                        {inStock ? (
-                                                            <span style={{ 
-                                                                fontSize: '0.7rem', 
-                                                                color: isSelected ? 'var(--accent)' : '#10b981',
-                                                                fontWeight: 600 
-                                                            }}>
-                                                                {variant.stock} left
-                                                            </span>
-                                                        ) : (
-                                                            <span style={{ 
-                                                                fontSize: '0.7rem', 
-                                                                color: '#ef4444',
-                                                                fontWeight: 600 
-                                                            }}>
-                                                                Out
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Price per unit */}
-                                <div style={{ fontSize: '1rem', color: '#666', marginBottom: '0.75rem' }}>
-                                    ₱{Number(item.sell_price).toFixed(2)} each
-                                </div>
-
-                                {/* Quantity Controls and Total */}
                                 <div style={{ 
                                     display: 'flex', 
                                     justifyContent: 'space-between', 
-                                    alignItems: 'center',
+                                    alignItems: 'flex-end',
+                                    marginTop: '1rem'
                                 }}>
-                                    {/* Quantity Controls */}
                                     <div style={{ 
                                         display: 'flex', 
                                         alignItems: 'center', 
-                                        gap: '0.5rem',
+                                        gap: '0.75rem',
                                         background: '#f8fafc',
-                                        borderRadius: '10px',
-                                        padding: '0.5rem',
+                                        borderRadius: '12px',
+                                        padding: '0.4rem',
+                                        border: '1px solid #f1f5f9'
                                     }}>
                                         <button
-                                            onClick={() => updateQty(item.cartId, -1)}
+                                            onClick={(e) => { e.stopPropagation(); updateQty(item.cartId, -1); }}
                                             style={{
-                                                width: '32px',
-                                                height: '32px',
+                                                width: '28px',
+                                                height: '28px',
                                                 borderRadius: '8px',
-                                                border: '1px solid #e0e0e0',
+                                                border: 'none',
                                                 background: '#fff',
                                                 cursor: 'pointer',
-                                                fontSize: '1.2rem',
-                                                fontWeight: 600,
+                                                fontSize: '1rem',
+                                                fontWeight: 700,
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                             }}
                                         >
                                             −
                                         </button>
-                                        <span style={{ 
-                                            fontWeight: 700, 
-                                            fontSize: '1.1rem',
-                                            minWidth: '40px',
-                                            textAlign: 'center',
-                                        }}>
+                                        <span style={{ fontWeight: 800, fontSize: '1rem', minWidth: '30px', textAlign: 'center' }}>
                                             {item.qty}
                                         </span>
                                         <button
-                                            onClick={() => updateQty(item.cartId, 1)}
+                                            onClick={(e) => { e.stopPropagation(); updateQty(item.cartId, 1); }}
                                             style={{
-                                                width: '32px',
-                                                height: '32px',
+                                                width: '28px',
+                                                height: '28px',
                                                 borderRadius: '8px',
-                                                border: '1px solid #e0e0e0',
+                                                border: 'none',
                                                 background: '#fff',
                                                 cursor: 'pointer',
-                                                fontSize: '1.2rem',
-                                                fontWeight: 600,
+                                                fontSize: '1rem',
+                                                fontWeight: 700,
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                             }}
                                         >
                                             +
                                         </button>
                                     </div>
 
-                                    {/* Item Total */}
-                                    <div style={{ 
-                                        fontSize: '1.25rem', 
-                                        fontWeight: 700, 
-                                        color: 'var(--accent)',
-                                    }}>
-                                        ₱{(item.sell_price * item.qty).toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '2px' }}>
+                                            ₱{Number(item.sell_price).toFixed(2)}
+                                        </div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827' }}>
+                                            ₱{(item.sell_price * item.qty).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
