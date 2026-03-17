@@ -29,6 +29,11 @@ Route::post('/supplier/auth/register', [SupplierAuthController::class, 'register
 Route::post('/supplier/auth/login', [SupplierAuthController::class, 'login']);
 Route::post('/supplier/auth/verify-email', [SupplierAuthController::class, 'verifyEmail']);
 
+// Public Products & Categories
+Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::get('/categories', [CategoryController::class, 'index']);
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -36,11 +41,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
-    // Products & Categories & Inventory
-    Route::apiResource('products', ProductController::class);
+    // Products (Protected CUD) & Inventory
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::put('/products/{id}', [ProductController::class, 'update']);
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+    
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::post('/inventory/transfer', [InventoryController::class, 'transferToStore']);
-    Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
 
     // Suppliers & Unit Types

@@ -158,9 +158,14 @@ export default function AppRouter() {
     );
 }
 
+import { createRoot } from 'react-dom/client';
+
+// ... (imports remain same)
+
 if (document.getElementById('app')) {
-    ReactDOM.render(
-        <BrowserRouter>
+    const root = createRoot(document.getElementById('app'));
+    root.render(
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
                 <SupplierAuthProvider>
                     <ToastProvider>
@@ -168,7 +173,6 @@ if (document.getElementById('app')) {
                     </ToastProvider>
                 </SupplierAuthProvider>
             </AuthProvider>
-        </BrowserRouter>,
-        document.getElementById('app')
+        </BrowserRouter>
     );
 }

@@ -22,12 +22,17 @@ export default function StockTab() {
     const [weightFilter, setWeightFilter] = useState('');
     const [variantMeta, setVariantMeta] = useState({ sizes: [], colors: [], weights: [] });
 
-    const [transferModal, setTransferModal] = useState({ show: false, item: null, qty: '1' }); // Qty as string to handle inputs
-    const [transferLoading, setTransferLoading] = useState(false);
+    const [unitTypes, setUnitTypes] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
+    const [transferForm, setTransferForm] = useState({ name: '', sku: '', category_id: '', unit_type_id: '', sell_price: '', description: '' });
 
     useEffect(() => {
         axios.get('/settings').then(res => {
             setCategories(res.data.data?.categories || []);
+            setUnitTypes(res.data.data?.unitTypes || []);
+        }).catch(() => {});
+        axios.get('/suppliers').then(res => {
+            setSuppliers(res.data.data || []);
         }).catch(() => {});
     }, []);
 
@@ -77,10 +82,11 @@ export default function StockTab() {
 
         setTransferLoading(true);
         try {
+            const isOrphan = !transferModal.item.product_id && !transferModal.item.is_variant;
             await axios.post('/inventory/transfer', {
-                product_id: transferModal.item.product_id,
-                variant_id: transferModal.item.variant_id || null,
+                inventory_id: transferModal.item.raw_id,
                 quantity: qty,
+                product_data: isOrphan ? transferForm : null
             });
             showToast('Stock transferred to storefront successfully!');
             setTransferModal({ show: false, item: null, qty: '1' });
@@ -90,6 +96,21 @@ export default function StockTab() {
         } finally {
             setTransferLoading(false);
         }
+    };
+
+    const openTransferModal = (item) => {
+        const isOrphan = !item.product_id && !item.is_variant;
+        if (isOrphan) {
+            setTransferForm({
+                name: (item.name || '').replace(' (Warehouse Only)', ''),
+                sku: item.sku || '',
+                category_id: item.category_id || '',
+                unit_type_id: item.unit_type_id || 1,
+                sell_price: (item.purchase_price || 0) * 1.2,
+                description: item.description || ''
+            });
+        }
+        setTransferModal({ show: true, item, qty: '1' });
     };
 
     const formatNum = (num) => Number(num || 0).toLocaleString();
@@ -191,7 +212,7 @@ export default function StockTab() {
                                         {item.warehouse_stock > 0 && (
                                             <button 
                                                 className="btn btn--sm btn--primary"
-                                                onClick={() => setTransferModal({ show: true, item, qty: '1' })}
+                                                onClick={() => openTransferModal(item)}
                                             >
                                                 Transfer to Store
                                             </button>
@@ -235,7 +256,6 @@ export default function StockTab() {
                                 value={transferModal.qty}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    // Handle leading zeros and empty string
                                     if (val === '') {
                                         setTransferModal({ ...transferModal, qty: '' });
                                     } else {
@@ -250,6 +270,51 @@ export default function StockTab() {
                                 }}
                             />
                         </div>
+
+                        {/* Orphan Product Form */}
+                        {(!transferModal.item.product_id && !transferModal.item.is_variant) && (
+                            <div className="bg-surface p-4 border-radius-lg border mb-4">
+                                <h4 className="text-sm font-bold mb-3 border-bottom pb-2">Setup Storefront Product Details</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="form-group col-span-2">
+                                        <label className="text-xs font-bold uppercase mb-1 d-block">Store Name</label>
+                                        <input type="text" className="form-control w-full" value={transferForm.name}
+                                            onChange={e => setTransferForm({...transferForm, name: e.target.value})} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="text-xs font-bold uppercase mb-1 d-block">SKU</label>
+                                        <input type="text" className="form-control w-full" value={transferForm.sku}
+                                            onChange={e => setTransferForm({...transferForm, sku: e.target.value})} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="text-xs font-bold uppercase mb-1 d-block">Category</label>
+                                        <select className="form-control w-full" value={transferForm.category_id}
+                                            onChange={e => setTransferForm({...transferForm, category_id: e.target.value})}>
+                                            <option value="">Select Category</option>
+                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="text-xs font-bold uppercase mb-1 d-block">Unit Type</label>
+                                        <select className="form-control w-full" value={transferForm.unit_type_id}
+                                            onChange={e => setTransferForm({...transferForm, unit_type_id: e.target.value})}>
+                                            <option value="">Select Unit</option>
+                                            {unitTypes.map(u => <option key={u.id} value={u.id}>{u.purchase_unit} / {u.sell_unit}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="text-xs font-bold uppercase mb-1 d-block">Selling Price (₱)</label>
+                                        <input type="number" step="0.01" className="form-control w-full" value={transferForm.sell_price}
+                                            onChange={e => setTransferForm({...transferForm, sell_price: e.target.value})} />
+                                    </div>
+                                    <div className="form-group col-span-2">
+                                        <label className="text-xs font-bold uppercase mb-1 d-block">Description</label>
+                                        <textarea className="form-control w-full" rows="2" value={transferForm.description}
+                                            onChange={e => setTransferForm({...transferForm, description: e.target.value})}></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="d-flex gap-2">
                             <button 

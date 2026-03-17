@@ -113,9 +113,7 @@ export default function Products() {
         <div>
             <div className="page-header">
                 <h2 className="page-title">Products Masterlist</h2>
-                <button className="btn btn-primary" onClick={openCreate}>
-                    + New Product
-                </button>
+                {/* Manual creation removed — products are created via Inventory Transfer */}
             </div>
 
             <FilterBar 

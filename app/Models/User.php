@@ -26,10 +26,6 @@ class User extends Authenticatable
         return $this->hasMany(Sale::class, 'customer_id');
     }
 
-    public function processedSales()
-    {
-        return $this->hasMany(Sale::class, 'processed_by');
-    }
 
     public function deliveries()
     {
@@ -46,8 +42,4 @@ class User extends Authenticatable
         return $this->hasOne(CustomerProfile::class);
     }
 
-    public function inventoryAdjustments()
-    {
-        return $this->hasMany(InventoryAdjustment::class);
-    }
 }

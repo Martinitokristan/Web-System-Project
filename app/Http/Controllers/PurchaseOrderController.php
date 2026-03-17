@@ -8,8 +8,12 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SupplierProduct;
+use App\Models\User;
+use App\Notifications\PurchaseOrderRequest;
+use App\Notifications\PurchaseOrderAccepted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class PurchaseOrderController extends Controller
 {
@@ -75,6 +79,11 @@ class PurchaseOrderController extends Controller
             return $po;
         });
 
+        // Notify Supplier
+        if ($po->supplier) {
+            $po->supplier->notify(new PurchaseOrderRequest($po));
+        }
+
         return response()->json([
             'data'    => $po->load(['supplier', 'items.product', 'items.supplierProduct']),
             'message' => 'Order request sent successfully',
@@ -137,10 +146,41 @@ class PurchaseOrderController extends Controller
             ->where('status', 'pending_supplier')
             ->findOrFail($id);
 
-        $po->update([
-            'status'      => 'accepted',
-            'accepted_at' => now(),
-        ]);
+        DB::transaction(function () use ($po) {
+            $po->update([
+                'status'      => 'accepted',
+                'accepted_at' => now(),
+            ]);
+
+            // Automatically increment inventory upon acceptance (Direct to Inventory)
+            foreach ($po->items as $item) {
+                $search = [
+                    'product_id'         => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                ];
+
+                if (!$item->product_id) {
+                    $search['supplier_product_id'] = $item->supplier_product_id;
+                }
+
+                $inv = \App\Models\Inventory::firstOrCreate(
+                    $search,
+                    [
+                        'current_stock'     => 0,
+                        'warehouse_stock'   => 0,
+                        'reorder_threshold' => 10,
+                    ]
+                );
+
+                $inv->increment('warehouse_stock', $item->quantity);
+                $inv->last_adjusted_at = now();
+                $inv->save();
+            }
+        });
+
+        // Notify Admin(s)
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new PurchaseOrderAccepted($po));
 
         return response()->json([
             'data'    => $po->fresh()->load(['supplier', 'items.product']),

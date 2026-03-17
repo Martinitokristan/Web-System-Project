@@ -59,6 +59,7 @@ class InventoryController extends Controller
             $sp = $o->supplierProduct;
             $flattened[] = [
                 'id' => "o-{$o->id}",
+                'raw_id' => $o->id,
                 'product_id' => null,
                 'variant_id' => null,
                 'supplier_product_id' => $o->supplier_product_id,
@@ -86,6 +87,7 @@ class InventoryController extends Controller
                     $soldKey = $p->id . '-' . $v->id;
                     $flattened[] = [
                         'id' => "v-{$v->id}",
+                        'raw_id' => Inventory::where('product_id', $p->id)->where('product_variant_id', $v->id)->value('id'),
                         'product_id' => $p->id,
                         'variant_id' => $v->id,
                         'sku' => $p->sku . ($v->sku_suffix ? "-{$v->sku_suffix}" : ""),
@@ -108,6 +110,7 @@ class InventoryController extends Controller
                 $soldKey = $p->id . '-0';
                 $flattened[] = [
                     'id' => "p-{$p->id}",
+                    'raw_id' => $p->inventory ? $p->inventory->id : null,
                     'product_id' => $p->id,
                     'variant_id' => null,
                     'sku' => $p->sku,
@@ -241,46 +244,82 @@ class InventoryController extends Controller
     public function transferToStore(Request $request)
     {
         $data = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'variant_id' => 'nullable|exists:product_variants,id',
-            'quantity'   => 'required|numeric|min:1',
+            'inventory_id' => 'nullable|exists:inventory,id',
+            'product_id'   => 'nullable|exists:products,id',
+            'variant_id'   => 'nullable|exists:product_variants,id',
+            'quantity'     => 'required|numeric|min:1',
+            'product_data' => 'nullable|array', // For orphans
         ]);
 
-        $product = Product::findOrFail($data['product_id']);
-
-        DB::transaction(function () use ($product, $data, $request) {
-            $inv = Inventory::where('product_id', $product->id)
-                ->where('product_variant_id', $data['variant_id'] ?? null)
-                ->firstOrFail();
+        $result = DB::transaction(function () use ($data, $request) {
+            $inv = null;
+            if (isset($data['inventory_id'])) {
+                $inv = Inventory::findOrFail($data['inventory_id']);
+            } else {
+                $inv = Inventory::where('product_id', $data['product_id'])
+                    ->where('product_variant_id', $data['variant_id'] ?? null)
+                    ->firstOrFail();
+            }
 
             if ($inv->warehouse_stock < $data['quantity']) {
                 abort(422, 'Insufficient warehouse stock for transfer.');
+            }
+
+            // Logic for "Orphan" items (Supplier Product not yet in Store)
+            if (!$inv->product_id && $inv->supplier_product_id) {
+                $sp = $inv->supplierProduct;
+                $pd = $data['product_data'] ?? [];
+                
+                // 1. Create Product from Supplier Product / Admin Input
+                $product = Product::create([
+                    'name'           => $pd['name'] ?? $sp->name,
+                    'sku'            => $pd['sku'] ?? ($sp->sku ?? ('SKU-' . str_pad(Product::count() + 1, 6, '0', STR_PAD_LEFT))),
+                    'description'    => $pd['description'] ?? $sp->description,
+                    'category_id'    => $pd['category_id'] ?? $sp->category_id,
+                    'supplier_id'    => $sp->supplier_id,
+                    'unit_type_id'   => $pd['unit_type_id'] ?? ($sp->unit_type_id ?? 1),
+                    'purchase_price' => $sp->price,
+                    'sell_price'     => $pd['sell_price'] ?? ($sp->price * 1.2),
+                    'image_path'     => $sp->image_path,
+                    'is_active'      => false, 
+                ]);
+
+                // 2. Link Inventory to new Product
+                $inv->product_id = $product->id;
+                $inv->save();
+                
+                $productId = $product->id;
+            } else {
+                $productId = $inv->product_id;
             }
 
             // Deduct from warehouse
             $inv->decrement('warehouse_stock', $data['quantity']);
 
             // Add to storefront
-            if ($data['variant_id']) {
-                $variant = \App\Models\ProductVariant::findOrFail($data['variant_id']);
+            if ($inv->product_variant_id) {
+                $variant = \App\Models\ProductVariant::findOrFail($inv->product_variant_id);
                 $variant->increment('stock', $data['quantity']);
-                $product->syncStockWithVariants(); // Sync base inventory's current_stock
+                $inv->product->syncStockWithVariants(); 
             } else {
                 $inv->increment('current_stock', $data['quantity']);
             }
 
             InventoryAdjustment::create([
-                'product_id' => $product->id,
+                'product_id' => $productId,
                 'user_id'    => $request->user()->id,
                 'type'       => 'add',
                 'quantity'   => $data['quantity'],
-                'note'       => 'Transferred from Warehouse to Storefront',
+                'note'       => 'Transferred from Warehouse to Storefront (Created Product if Orphan)',
                 'created_at' => now(),
             ]);
+
+            return $inv->load('product');
         });
 
         return response()->json([
-            'message' => 'Stock transferred to storefront successfully',
+            'data'    => $result,
+            'message' => 'Stock transferred to storefront successfully. ' . ($result->product ? 'Product is now in store module.' : ''),
             'status'  => 'success',
         ]);
     }

@@ -56,9 +56,51 @@ export default function SupplierSettings() {
 
     const tabs = [
         { id: 'profile', label: 'Profile', icon: '👤' },
+        { id: 'categories', label: 'Categories', icon: '📂' },
         { id: 'security', label: 'Security', icon: '🔒' },
         { id: 'notifications', label: 'Notifications', icon: '🔔' },
     ];
+
+    const [categories, setCategories] = useState([]);
+    const [newCat, setNewCat] = useState('');
+    const [loadingCats, setLoadingCats] = useState(false);
+
+    React.useEffect(() => {
+        if (activeTab === 'categories') fetchCategories();
+    }, [activeTab]);
+
+    const fetchCategories = async () => {
+        setLoadingCats(true);
+        try {
+            const res = await axios.get('/supplier/categories');
+            setCategories(res.data.data || []);
+        } finally { setLoadingCats(false); }
+    };
+
+    const handleAddCategory = async (e) => {
+        e.preventDefault();
+        if (!newCat.trim()) return;
+        setSaving(true);
+        try {
+            await axios.post('/supplier/categories', { name: newCat });
+            setNewCat('');
+            fetchCategories();
+            showToast('Category added', 'success');
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Failed to add category', 'error');
+        } finally { setSaving(false); }
+    };
+
+    const handleDeleteCategory = async (id) => {
+        if (!window.confirm('Are you sure? This will delete the category.')) return;
+        try {
+            await axios.delete(`/supplier/categories/${id}`);
+            fetchCategories();
+            showToast('Category deleted', 'success');
+        } catch (err) {
+            showToast('Failed to delete category', 'error');
+        }
+    };
 
     return (
         <div className="settings-container">
@@ -78,6 +120,51 @@ export default function SupplierSettings() {
             </div>
 
             <div className="settings-content">
+                {activeTab === 'categories' && (
+                    <>
+                        <div className="content-header">
+                            <h2>Product Categories</h2>
+                            <p>Manage the categories used to organize your products</p>
+                        </div>
+                        
+                        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '1.5rem', marginBottom: '1.5rem' }}>
+                            <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '0.75rem' }}>
+                                <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Category Name (e.g. Variants, Size etc.)" 
+                                        value={newCat}
+                                        onChange={e => setNewCat(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <button type="submit" className="btn btn-primary" disabled={saving}>
+                                    {saving ? 'Adding...' : '+ Add Category'}
+                                </button>
+                            </form>
+                        </div>
+
+                        <div className="category-list">
+                            {loadingCats ? <div className="spinner-sm" /> : categories.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No categories created yet</div>
+                            ) : categories.map(cat => (
+                                <div key={cat.id} style={{ 
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '1rem', borderBottom: '1px solid #f1f5f9', background: '#fff'
+                                }}>
+                                    <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                                    <button 
+                                        onClick={() => handleDeleteCategory(cat.id)}
+                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+
                 {activeTab === 'profile' && (
                     <>
                         <div className="content-header">

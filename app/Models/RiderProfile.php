@@ -9,6 +9,7 @@ class RiderProfile extends Model
     protected $fillable = [
         'user_id', 'vehicle_type', 'plate_number',
         'availability', 'total_deliveries', 'on_time_count',
+        'current_latitude', 'current_longitude',
         'valid_id_type', 'valid_id_path', 'license_number', 'address', 'interview_at'
     ];
 

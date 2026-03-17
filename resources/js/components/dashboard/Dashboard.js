@@ -28,7 +28,7 @@ export default function Dashboard() {
             { i: 'ord', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
             { i: 'stk', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
             { i: 'rid', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-            { i: 'chart', x: 0, y: 2, w: 12, h: 6, minW: 6, minH: 4 }
+            { i: 'chart', x: 0, y: 2, w: 12, h: 6, minW: 2, minH: 4 }
         ];
         
         return { lg: defaultLayout, md: defaultLayout, sm: defaultLayout };

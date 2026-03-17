@@ -37,6 +37,9 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // NOTE: Standalone product creation is deprecated. 
+        // Products should be created via InventoryController@transferToStore from warehouse stock.
+        
         $data = $request->validate([
             'sku'               => 'required|string|max:50|unique:products,sku',
             'name'              => 'required|string|max:150',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useToast } from '../../context/ToastContext';
 import FilterBar from '../shared/FilterBar';
@@ -25,8 +26,32 @@ export default function SupplierProducts() {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
 
+    const location = useLocation();
+    
     useEffect(() => { fetchProducts(); }, [page, search, categoryFilter]);
     useEffect(() => { fetchCategories(); }, []);
+
+    // Sync URL search params with local state
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const catId = params.get('category_id');
+        const shouldOpen = params.get('open_form') === 'true';
+
+        if (catId) {
+            setCategoryFilter(catId);
+            setPage(1);
+            if (shouldOpen) {
+                // Pre-fill form with this category
+                setEditing(null);
+                setForm(f => ({ ...f, name: '', category_id: catId, sku: '', description: '', price: '', min_order_qty: '1', is_promoted: false, image: null }));
+                setVariants([]);
+                setImagePreview(null);
+                setFormOpen(true);
+            }
+        } else if (location.pathname === '/supplier/products' && !location.search) {
+             setCategoryFilter('');
+        }
+    }, [location.search]);
 
     const fetchCategories = async () => {
         try {
@@ -338,7 +363,7 @@ export default function SupplierProducts() {
                     <h2 style={{ fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>Product Catalog</h2>
                     <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.25rem' }}>Manage and organize your products</p>
                 </div>
-                <button className="btn btn-primary" onClick={openCreate}>+ Add Product</button>
+                {/* Standalone Add button removed. Use category sidebar '+' to add. */}
             </div>
 
             <FilterBar
